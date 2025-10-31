@@ -1,0 +1,14 @@
+run_id,family,N_params,tokens_D,flops_C,loss,split,is_checkpoint,notes
+pythia-70m-run1,Pythia,70000000,1000000000,420000000000000,3.45,valid,false,baseline
+pythia-70m-run1-ckpt1,Pythia,70000000,500000000,210000000000000,3.62,valid,true,checkpoint at 50%
+pythia-160m-run1,Pythia,160000000,1000000000,960000000000000,3.12,valid,false,baseline
+pythia-160m-run1-ckpt1,Pythia,160000000,500000000,480000000000000,3.28,valid,true,checkpoint at 50%
+pythia-410m-run1,Pythia,410000000,1000000000,2460000000000000,2.85,valid,false,baseline
+pythia-410m-run1-ckpt1,Pythia,410000000,500000000,1230000000000000,2.98,valid,true,checkpoint at 50%
+pythia-1b-run1,Pythia,1000000000,1000000000,6000000000000000,2.65,valid,false,baseline
+pythia-1b-run1-ckpt1,Pythia,1000000000,500000000,3000000000000000,2.75,valid,true,checkpoint at 50%
+pythia-70m-run2,Pythia,70000000,2000000000,840000000000000,3.38,valid,false,double tokens
+pythia-160m-run2,Pythia,160000000,2000000000,1920000000000000,3.05,valid,false,double tokens
+pythia-410m-run2,Pythia,410000000,2000000000,4920000000000000,2.78,valid,false,double tokens
+pythia-1b-run2,Pythia,1000000000,2000000000,12000000000000000,2.58,valid,false,double tokens
+
