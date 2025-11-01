@@ -637,3 +637,15 @@ hyperparameter transfer, 2022. arXiv:2203.03466.
 is it consistent with that? (/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/cs336_spring2025_assignment3_scaling.pdf)
 
 Always run the code to test that it works and read the output carefully. 
+
+--
+
+I want plots here /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots
+
+I want the data here:
+
+/Users/brandomiranda/dark-matter2/data
+
+This still seems like too many files. I want all the plots in the plots folder and ideally something simple like just 3 max 4 files is what I need. It's ok to keep the cs336 I pushed and my @codex_prompt.md besides that you created too many files. Simple and correct is better. Always run it and inspect the plots to make sure the changes are still correct. Also keep this file /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/Reconciling Kaplan and Chinchilla Scaling Laws.pdf.
+
+The implementation should be correct wrt /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/Reconciling Kaplan and Chinchilla Scaling Laws.pdf and cs336 too ideally. cs336 is take precedence. 
