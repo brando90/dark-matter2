@@ -1,3 +1,8 @@
+# Virtual environments (we use ~/uv_envs/dark-matter2 instead)
+.venv/
+venv/
+env/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -35,6 +40,9 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+
+# wandb run artifacts
+wandb/
 
 # Unit test / coverage reports
 htmlcov/

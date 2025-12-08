@@ -1,11 +1,27 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "dark-matter2"
+		},
+		{
+			"path": "../cert-judge"
 		},
 		{
 			"path": "../veribench"
+		},
+		{
+			"path": "../self-opt-data-gen"
+		},
+		{
+			"path": "../KoyejoLab-Memorization-Scoring-vs-Sampling"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.terminal.activateEnvironment": true,
+		"python.analysis.extraPaths": [
+			"${workspaceFolder:dark-matter2}/py_src"
+		],
+		"python.defaultInterpreterPath": "${env:HOME}/uv_envs/dark-matter2/bin/python"
+	}
 }

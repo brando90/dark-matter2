@@ -1,69 +1,31 @@
-# CS336 Scaling Laws Implementation
+# Chinchilla Verification
 
-Clean, minimal implementation for CS336 Assignment 3 and Dark Matter research.
+Verify scaling law implementation fits L(N,D) = E + A/N^α + B/D^β correctly.
 
-## Files
-
-### Core Implementations
-- **`isoflops_scaling.py`** - CS336 IsoFLOPs approach (Chinchilla Approach 1)
-- **`scaling_laws_fit.py`** - Joint fit with Huber loss (Chinchilla Approach 3)
-
-### Testing
-- **`test_pipeline.py`** - Single test that validates everything
-
-### Reference
-- **`codex_prompt.md`** - Original specification
-- **`cs336_spring2025_assignment3_scaling.pdf`** - CS336 assignment
-- **`Reconciling Kaplan and Chinchilla Scaling Laws.pdf`** - Reference paper
-
-## Quick Test
+## Install
 
 ```bash
-cd /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting
-uv run python test_pipeline.py
+# Create uv environment at standard location
+uv venv ~/uv_envs/dark-matter2
+
+# Activate and sync dependencies to active environment
+source ~/uv_envs/dark-matter2/bin/activate
+cd ~/dark-matter2
+uv sync --active
 ```
 
-**This validates:**
-- CS336 IsoFLOPs method works correctly
-- Joint fit method works correctly
-- Both find balanced scaling (a ≈ 0.5)
-- Plots saved to `plots/`
-- Data saved to `../../data/`
+## Run
 
-## Usage for CS336
-
-```python
-from isoflops_scaling import *
-
-# Load your CS336 data
-df = load_isoflops_data("data/isoflops_curves.json")
-
-# Extract and fit
-points = extract_isoflops_points(df)
-law = fit_isoflops_scaling_law(points)
-
-# Get predictions for 10^23 and 10^24 FLOPs
-N_23, D_23 = law.predict_both(1e23)
-N_24, D_24 = law.predict_both(1e24)
-
-print(f"For 10²³ FLOPs: N = {N_23:.3e}, D = {D_23:.3e}")
-print(f"For 10²⁴ FLOPs: N = {N_24:.3e}, D = {D_24:.3e}")
+```bash
+bash ~/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.bash
 ```
 
-## Directory Structure
+## Expected Output
 
-```
-dark-matter2/
-├── data/
-│   └── cs336_test_data.json         # Test data
-└── experiments/00_prepare_data_for_scaling_law_fitting/
-    ├── isoflops_scaling.py          # CS336 implementation
-    ├── scaling_laws_fit.py          # Joint fit implementation
-    ├── test_pipeline.py             # Test script
-    ├── plots/
-    │   ├── cs336_scaling_laws.png   # CS336 validation
-    │   └── joint_fit_validation.png # Joint fit validation
-    └── README.md                    # This file
-```
+**Besiroglu Targets:**
+- E ≈ 1.82, A ≈ 482, α ≈ 0.34, B ≈ 2085, β ≈ 0.36
+- D/N ≈ 20 (Chinchilla-optimal)
 
-Simple and correct! ✓
+**Files:**
+- Data: `~/dark-matter2/data/chinchilla_verification_data.csv`
+- Plots: `plots/chinchilla_verification_*.png`
