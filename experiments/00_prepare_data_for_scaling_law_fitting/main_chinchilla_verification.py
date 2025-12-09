@@ -49,8 +49,8 @@ def _main(
     # Paths
     default_data = Path.home() / "dark-matter2" / "data" / "chinchilla_verification_data.csv"
     data_path = Path(data_csv) if data_csv else default_data
-    base_plots_dir = Path(__file__).parent / "plots"
-    plots_dir = base_plots_dir if not plots_suffix else base_plots_dir / f"plots_out_{plots_suffix}"
+    exp_dir = Path(__file__).parent
+    plots_dir = exp_dir / f"plots_out_{plots_suffix}" if plots_suffix else exp_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
     
     # File logging to plots dir
