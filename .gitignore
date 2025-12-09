@@ -250,6 +250,9 @@ Temporary Items
 !ocaml_src/*.ml
 !ocaml_src/*.sh
 
+# W&B local runs
+wandb/
+
 # Coq (Rocq)
 /rocq_src/* 
 !rocq_src/*.v

@@ -213,3 +213,34 @@ Check: Open it and it should have a X with Y to be correct
 # If there are more plots we'd have more of those prints after we run out script after copy pasting the contents of main chinchiclla repli verification.sh
 ```
 
+suggestions: make sure to use pypdf to inspect pdfs, make sure to use tools to view images,
+you should be multimodal. 
+
+--
+
+# Dec 8 3:49 2025 - Check that we have at least all of the deliverables taht the scaling laws assignment for cs336 would request
+
+1. First list all the deliverables the assingment has `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/research_papers/cs336_spring2025_assignment3_scaling.pdf`, if there are any other deliverables from the that the chinchilla replication paper `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/research_papers/Reconciling Kaplan and Chinchilla Scaling Laws.pdf` would suggest let's add it (at least we should do what we already have eg checking our estimates are close, and we should plot the true synthetic scaling law vs our new fit please)
+2. then make sure we have the deliverables (actual content/plots/numbers with the NL check we should make and that you will do with pypdf or image tooling) printed echoed in the format
+```bash
+025-12-08 14:42:05,686 - INFO -    Deliverable, Plot: /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots/chinchilla_verification_residuals.png
+2025-12-08 14:42:05,686 - INFO -    Deliverable, Check:
+2025-12-08 14:42:05,686 - INFO -      - Left panel (scatter): points should cluster around the red y=0 line with no slope/curve/funnel.
+2025-12-08 14:42:05,686 - INFO -      - Right panel (histogram): should look bell-shaped and centered at 0 (no heavy skew or double peak).
+2025-12-08 14:42:05,686 - INFO -      If you see a tilted cloud, funnel, or off-center histogram, the fit is likely biased.
+```
+Do the checks yourself always. Do not cheat, no weird smoke tests, just the real task. 
+
+-- 
+
+# Dec 8 3:56 2025 - Explain the why of the check
+
+We will have a check to do for our plot eg that the residuals are symmetric. 
+We should add to the echoing printing format the reason the why for this check to be the way it is. 
+For example, I suggested:
+--> plot: plot our chinchilla fit vs the synthetic true fit
+--> check: look at the plot and make sure the two plots are very close (if not identical)
+--> reason: it should be very very very close because we are fitting the gold reference scaling law directly, we know the exact functional form due to the synthetic toy data and we are fitting it, so we in fact should be able to achieve exactitude if we wanted -- let's do that sanity check. 
+
+Ok so do that for every check/deliverable/plot into 3 echo statements please. 
+Do the check too fromt he run please. 

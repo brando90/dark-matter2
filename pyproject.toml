@@ -48,6 +48,7 @@ dependencies = [
     "dspy",
     "sglang>=0.4.9",
     "inspect_ai",
+    "pypdf",
     "openai",
     "evaluate",
     "unsloth>=2025.2.14; platform_system != 'Darwin'",
