@@ -16,9 +16,30 @@ uv sync --active
 
 ## Run
 
-```bash
-bash ~/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.bash
-```
+- Activate env:
+  ```bash
+  source "$HOME/uv_envs/dark-matter2/bin/activate"
+  cd ~/dark-matter2
+  ```
+
+- Synthetic run (default paths/plots):
+  ```bash
+  python experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.py \
+    --mode dryrun \
+    --n_points 400 \
+    --seed 42
+  ```
+
+- Run on a specific CSV (must have `N_params`, `tokens_D`, `loss`; `flops_C` auto-computed if missing) and suffix output:
+  ```bash
+  python experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.py \
+    --mode dryrun \
+    --data_csv data/pythia_style_data.csv \
+    --plots_suffix pythia_style
+  ```
+  Plots and `verification.log` land in `experiments/00_prepare_data_for_scaling_law_fitting/plots/plots_out_<suffix>/`.
+
+- Online W&B logging: add `--mode online` (optionally `--wandb_project`, `--wandb_entity`).
 
 ## Expected Output
 

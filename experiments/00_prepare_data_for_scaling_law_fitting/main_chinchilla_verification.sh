@@ -1,4 +1,3 @@
-#!/bin/bash
 # Run Chinchilla scaling law fit on one or all data CSVs, saving outputs to per-family folders
 
 # Activate uv environment
