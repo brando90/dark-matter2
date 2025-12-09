@@ -264,3 +264,10 @@ to the screen)
 Do it and make sure it's correct. To do this the argument to the main .sh script
 should be the path to the data .csv. We should go through all of them please. 
 The plot dirs folders should be at: `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting` please. 
+
+PS: I always without exception want comments in my bash scripts eg I do want:
+```
+# Run Chinchilla scaling law fit on one or all data CSVs, saving outputs to per-family folders
+
+# Activate uv environment
+```
