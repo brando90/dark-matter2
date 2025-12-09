@@ -244,3 +244,23 @@ For example, I suggested:
 
 Ok so do that for every check/deliverable/plot into 3 echo statements please. 
 Do the check too fromt he run please. 
+
+Note: always re-run the experiments when you make a change so the results and plots are updated. Inspect them and check them always. 
+
+--
+
+- do a few more seeds to make sure nothing was hardcoded and there are no bugs.
+- all the scaling data that we are to fit should be in the same format. So the code is simpler and unified. Run and test it. 
+
+# Dec 8 4:41 pm 2025 - Let's now do the fits with the remaining scaling laws data
+
+We should have more data here: `/Users/brandomiranda/dark-matter2/data`
+I want to pass the similar tests for each of the scaling data (Ni, Di, Li). 
+We should save the plots at `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots` with the suffix of the name of the experiment, in this case the model family I think:
+plots_out_FAM1
+...
+we should also save the log output from the run there (the thing we are printing
+to the screen)
+Do it and make sure it's correct. To do this the argument to the main .sh script
+should be the path to the data .csv. We should go through all of them please. 
+The plot dirs folders should be at: `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting` please. 

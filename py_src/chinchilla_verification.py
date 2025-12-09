@@ -161,10 +161,16 @@ def plot_kaplan_vs_chinchilla_compute_loss(fitted: JointParams, plots_dir: Path,
     
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.loglog(C_grid, losses, 'o', alpha=0.5, label='Synthetic optimal (from fitted)')
-    ax.loglog(C_grid, pred_chi, '-', label=f'Chinchilla form (offset) RMSE={rmse_chi:.4f}')
-    ax.loglog(C_grid, pred_kap, '--', label=f'Kaplan form (no offset) RMSE={rmse_kap:.4f}')
-    ax.set_xlabel('Compute C (FLOPs)')
-    ax.set_ylabel('Loss')
+    ax.loglog(
+        C_grid, pred_chi, '-',
+        label=f"Chinchilla: L = {fitted.E:.2f} + {a_chi:.2e}·C^(-{gamma_chi:.3f}) (RMSE={rmse_chi:.4f})"
+    )
+    ax.loglog(
+        C_grid, pred_kap, '--',
+        label=f"Kaplan: L = {a_kap:.2e}·C^(-{gamma_kap:.3f}) (RMSE={rmse_kap:.4f})"
+    )
+    ax.set_xlabel('Compute C (FLOPs) [log scale]')
+    ax.set_ylabel('Loss [log scale]')
     ax.set_title('Compute–Loss Frontier: Chinchilla (offset) vs Kaplan (no offset)')
     ax.legend()
     ax.grid(True, which='both', alpha=0.3)
@@ -181,6 +187,7 @@ def plot_fitted_vs_true_scaling_law(df: pd.DataFrame, fitted: JointParams, plots
     """
     Plot fitted scaling law predictions vs true (synthetic) loss values.
     Since we know the exact functional form, these should be nearly identical.
+    Uses log-log scale and shows both functional forms in legend.
     """
     plots_dir = Path(plots_dir)
     plots_dir.mkdir(parents=True, exist_ok=True)
@@ -188,30 +195,45 @@ def plot_fitted_vs_true_scaling_law(df: pd.DataFrame, fitted: JointParams, plots
     L_true = df['loss'].values
     L_pred = predict_joint(fitted, df['N_params'].values, df['tokens_D'].values)
     
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(L_true, L_pred, alpha=0.5, s=20)
+    # Target params for legend
+    t = CHINCHILLA_REPLICATION_PARAMS
     
-    # Perfect fit line
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Scatter with label showing fitted params
+    fitted_label = (f'Fitted: L = {fitted.E:.2f} + {fitted.A:.0f}/N^{fitted.alpha:.2f} '
+                   f'+ {fitted.B:.0f}/D^{fitted.beta:.2f}')
+    ax.scatter(L_true, L_pred, alpha=0.5, s=20, label=fitted_label)
+    
+    # Perfect fit line with label showing target params
     lims = [min(L_true.min(), L_pred.min()), max(L_true.max(), L_pred.max())]
-    ax.plot(lims, lims, 'r--', linewidth=2, label='Perfect fit (y=x)')
+    target_label = (f'Target: L = {t["E"]:.2f} + {t["A"]:.0f}/N^{t["alpha"]:.2f} '
+                   f'+ {t["B"]:.0f}/D^{t["beta"]:.2f}')
+    ax.plot(lims, lims, 'r--', linewidth=2, label=target_label)
     
-    ax.set_xlabel('True Loss (synthetic data)')
+    # Log-log scale
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    
+    ax.set_xlabel('True Loss (synthetic data from target params)')
     ax.set_ylabel('Predicted Loss (fitted model)')
-    ax.set_title('Fitted vs True Scaling Law')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.set_aspect('equal')
+    ax.set_title('Fitted vs True Scaling Law (log-log)')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, alpha=0.3, which='both')
     
-    # Compute max deviation
+    # Compute deviations (absolute and relative)
     max_dev = np.max(np.abs(L_pred - L_true))
     mean_dev = np.mean(np.abs(L_pred - L_true))
+    rel_err = np.abs(L_pred - L_true) / np.clip(L_true, 1e-12, None)
+    rmse_rel = np.sqrt(np.mean(rel_err ** 2))
+    max_rel_err = np.max(rel_err)
     
     out_path = plots_dir / "fitted_vs_true_scaling_law.png"
     plt.tight_layout()
     plt.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close()
     logger.info(f"Saved fitted vs true plot to {out_path}")
-    return dict(path=out_path, max_dev=max_dev, mean_dev=mean_dev)
+    return dict(path=out_path, max_dev=max_dev, mean_dev=mean_dev, rmse_rel=rmse_rel, max_rel_err=max_rel_err)
 
 
 def plot_isoflops_frontiers(df: pd.DataFrame, plots_dir: Path):
@@ -279,7 +301,8 @@ def run_chinchilla_verification(
     data_path: Path,
     plots_dir: Path,
     n_points: int = 400,
-    seed: int = 42
+    seed: int = 42,
+    load_only: bool = False
 ) -> Dict[str, Any]:
     """
     Run full Chinchilla verification pipeline.
@@ -305,9 +328,19 @@ def run_chinchilla_verification(
     if data_path.exists():
         logger.info(f"Loading existing data from {data_path}")
         df = pd.read_csv(data_path)
-    else:
+    elif not load_only:
         logger.info(f"Generating {n_points} synthetic runs...")
         df = generate_synthetic_data_chinchilla_replication(n_points, seed, data_path)
+    else:
+        raise FileNotFoundError(f"Data CSV not found and load_only=True: {data_path}")
+    
+    # Ensure required columns
+    required = {'N_params', 'tokens_D', 'loss'}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns {missing} in {data_path}")
+    if 'flops_C' not in df.columns:
+        df['flops_C'] = 6.0 * df['N_params'] * df['tokens_D']
     
     # Fit scaling law
     logger.info("Fitting L(N,D) = E + A/N^α + B/D^β...")
@@ -348,36 +381,92 @@ def run_chinchilla_verification(
     
     logger.info(f"\nFit quality: R²={r_squared:.6f}, RMSE={rmse:.6f}")
     
-    # Print deliverables with Plot/Check/Reason format
-    logger.info("\n" + "="*70)
-    logger.info("DELIVERABLES TO INSPECT")
-    logger.info("="*70)
-    
-    # 1. Fitted vs True
-    logger.info(f"\n--> Plot: {fitted_vs_true_info['path']}")
-    logger.info(f"--> Check: Points should lie exactly on the y=x diagonal line (max dev: {fitted_vs_true_info['max_dev']:.4f})")
-    logger.info(f"--> Reason: We are fitting the exact functional form L=E+A/N^α+B/D^β to synthetic data generated from that same form. The fit should be near-perfect (only noise prevents exactitude).")
-    
-    # 2. Residuals
+    # Build deliverables with detailed self-contained reasons
     residuals_path = plots_dir / 'chinchilla_verification_residuals.png'
-    logger.info(f"\n--> Plot: {residuals_path}")
-    logger.info(f"--> Check: LEFT panel scatter symmetric around y=0, no funnel. RIGHT panel bell-shaped at 0.")
-    logger.info(f"--> Reason: Residuals show if the model is unbiased. Symmetric scatter means no systematic over/under-prediction. Funnel shape would indicate heteroscedasticity (variance depends on prediction).")
+    t = CHINCHILLA_REPLICATION_PARAMS  # target params for reference
     
-    # 3. Compute-loss comparison
-    logger.info(f"\n--> Plot: {compute_loss_info['path']}")
-    logger.info(f"--> Check: Chinchilla (offset) RMSE={compute_loss_info['rmse_chi']:.4f} < Kaplan (no offset) RMSE={compute_loss_info['rmse_kap']:.4f}")
-    logger.info(f"--> Reason: The offset term E captures irreducible entropy. Without it (Kaplan form), the fit diverges at high compute where loss approaches E. Chinchilla form is strictly more correct.")
+    # Compute relative errors for plot1
+    rel_errors = np.abs(L_pred - df['loss'].values) / df['loss'].values
+    rmse_rel = np.sqrt(np.mean(rel_errors**2))
+    max_rel_error = np.max(rel_errors)
     
-    # 4. IsoFLOPs frontiers
+    # Get exponents for cross-check
+    a_N = iso_model_info['exponent'] if iso_model_info else 0.5
+    a_D = iso_data_info['exponent'] if iso_data_info else 0.5
+    
+    reason1 = (
+        f"Synthetic L uses the same form L=E+A/N^α+B/D^β with 2% log-normal noise, so rel errors should be tiny (RMSE_rel≈0.02, max_rel<0.10). "
+        f"If points stray far from y=x (large rel errors/curvature), the fit or functional form is wrong."
+    )
+    
+    reason2 = (
+        f"2% multiplicative noise ⇒ residuals ~ Normal(0, 0.02·loss); expect symmetric cloud around 0 and a bell-shaped histogram. "
+        f"Slope or funnel = bias/heteroscedasticity; skew/bimodality = model misspecification or outliers."
+    )
+    
+    reason3 = (
+        f"True loss floors at E≈{t['E']}; Chinchilla fits L→E as C→∞, Kaplan forces L→0, so Kaplan underfits the high-compute tail. "
+        f"We expect Chinchilla RMSE ≪ Kaplan; if similar, the offset isn’t working or there’s a bug."
+    )
+    
+    reason4 = (
+        f"IsoFLOPs theory: N_opt ∝ C^a with a=α/(α+β)≈0.486; straight line slope ≈0.5 in log-log and a_N+a_D≈1 (C∝N·D). "
+        f"Curvature or slope far from 0.5/ a_N+a_D≠1 means bad minima or fit."
+    )
+    
+    reason5 = (
+        f"D_opt exponent should be b=β/(α+β)≈0.514 and complement N (1−a_N); expect straight log-log line, a_N+a_D≈1. "
+        f"Large deviations/curvature mean the IsoFLOPs minima or fit are off; consistency with plot4 validates D/N≈20 guidance."
+    )
+    
+    deliverables = [
+        {
+            'name': 'fitted_vs_true',
+            'path': fitted_vs_true_info['path'],
+            'check': f"Points tight on y=x; RMSE_rel={rmse_rel:.4f} (expect ≈0.02), max_rel={max_rel_error:.4f} (expect <0.10)",
+            'reason': reason1
+        },
+        {
+            'name': 'residuals',
+            'path': residuals_path,
+            'check': "Residuals vs fitted loss: symmetric around y=0, no funnel. Histogram: bell-shaped at 0.",
+            'reason': reason2
+        },
+        {
+            'name': 'kaplan_vs_chinchilla',
+            'path': compute_loss_info['path'],
+            'check': f"Chinchilla RMSE ({compute_loss_info['rmse_chi']:.6f}) ≪ Kaplan RMSE ({compute_loss_info['rmse_kap']:.4f})",
+            'reason': reason3
+        },
+    ]
     if iso_model_info and iso_data_info:
-        logger.info(f"\n--> Plot: {iso_model_info['path']}")
-        logger.info(f"--> Check: Power-law fit N∝C^{iso_model_info['exponent']:.3f} through min-loss points, extrapolates smoothly.")
-        logger.info(f"--> Reason: CS336 deliverable. Shows how optimal model size scales with compute. Exponent ~0.5 expected from Chinchilla.")
-        
-        logger.info(f"\n--> Plot: {iso_data_info['path']}")
-        logger.info(f"--> Check: Power-law fit D∝C^{iso_data_info['exponent']:.3f} through min-loss points, extrapolates smoothly.")
-        logger.info(f"--> Reason: CS336 deliverable. Shows how optimal dataset size scales with compute. Exponent ~0.5 expected from Chinchilla.")
+        deliverables.extend([
+            {
+                'name': 'isoflops_model',
+                'path': iso_model_info['path'],
+                'check': f"N_opt ∝ C^{a_N:.3f} (expect ≈0.5), straight line in log-log, a_N+a_D={a_N+a_D:.3f} (expect ≈1)",
+                'reason': reason4
+            },
+            {
+                'name': 'isoflops_data',
+                'path': iso_data_info['path'],
+                'check': f"D_opt ∝ C^{a_D:.3f} (expect ≈0.5), straight line in log-log, consistent with plot4",
+                'reason': reason5
+            },
+        ])
+    
+    # Print as numbered list with wrapped reasons
+    import textwrap
+    logger.info("\n" + "="*80)
+    logger.info("DELIVERABLES TO INSPECT")
+    logger.info("="*80)
+    for i, d in enumerate(deliverables, 1):
+        logger.info(f"\nplot{i}: {d['name']}")
+        logger.info(f"  Path:  {d['path']}")
+        logger.info(f"  Check: {d['check']}")
+        logger.info("  Reason:")
+        for line in textwrap.wrap(d['reason'], width=76):
+            logger.info(f"    {line}")
 
     return {
         'fitted': fitted,

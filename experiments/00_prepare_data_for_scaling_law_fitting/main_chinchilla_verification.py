@@ -29,6 +29,8 @@ def _main(
     mode: str = "online",
     n_points: int = 400,
     seed: int = 42,
+    data_csv: str = None,
+    plots_suffix: str = None,
     wandb_project: str = "dark-matter2-chinchilla-verification",
     wandb_entity: str = "brando-su"
 ):
@@ -39,12 +41,23 @@ def _main(
         mode: 'online' to log to wandb, 'dryrun' to skip wandb
         n_points: Number of synthetic training runs
         seed: Random seed
+        data_csv: Optional path to CSV with columns [N_params, tokens_D, loss, flops_C]; if provided, load instead of generating
+        plots_suffix: Optional suffix for plots/logs subdir (e.g., model family); if None, uses default plots dir
         wandb_project: W&B project name
         wandb_entity: W&B entity (brando's wandb)
     """
     # Paths
-    data_path = Path.home() / "dark-matter2" / "data" / "chinchilla_verification_data.csv"
-    plots_dir = Path(__file__).parent / "plots"
+    default_data = Path.home() / "dark-matter2" / "data" / "chinchilla_verification_data.csv"
+    data_path = Path(data_csv) if data_csv else default_data
+    base_plots_dir = Path(__file__).parent / "plots"
+    plots_dir = base_plots_dir if not plots_suffix else base_plots_dir / f"plots_out_{plots_suffix}"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    
+    # File logging to plots dir
+    file_handler = logging.FileHandler(plots_dir / "verification.log", mode="w")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
     
     # Initialize wandb
     if mode == "online":
@@ -62,7 +75,8 @@ def _main(
     logger.info("=== Chinchilla Replication Verification ===")
     
     # Run verification
-    results = run_chinchilla_verification(data_path, plots_dir, n_points, seed)
+    load_only = data_csv is not None
+    results = run_chinchilla_verification(data_path, plots_dir, n_points, seed, load_only=load_only)
     
     # Log to wandb
     if mode == "online":
@@ -98,6 +112,9 @@ def _main(
     else:
         logger.info("⚠️  VERIFICATION INCOMPLETE - review plots above")
     logger.info("="*60)
+    
+    # Remove file handler to avoid duplicate logs on repeated runs
+    logger.removeHandler(file_handler)
 
 
 if __name__ == "__main__":
