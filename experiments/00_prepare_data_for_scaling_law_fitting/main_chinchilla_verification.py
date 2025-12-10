@@ -9,9 +9,6 @@ import sys
 import logging
 from pathlib import Path
 
-# Add py_src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 import fire
 import wandb
 

@@ -1,0 +1,9 @@
+model,params,training_flops,pile_test_xent
+Pythia-70M,70M,1.6e20,2.504
+Pythia-160M,160M,4.1e20,2.186
+Pythia-410M,410M,1.1e21,1.971
+Pythia-1B,1B,2.2e21,1.845
+Pythia-1.4B,1.4B,3.2e21,1.793
+Pythia-2.8B,2.8B,6.1e21,1.720
+Pythia-6.9B,6.9B,1.4e22,1.626
+Pythia-12B,12B,2.4e22,1.582

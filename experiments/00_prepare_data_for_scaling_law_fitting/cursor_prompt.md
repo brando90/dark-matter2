@@ -271,3 +271,53 @@ PS: I always without exception want comments in my bash scripts eg I do want:
 
 # Activate uv environment
 ```
+
+--
+
+# Dec 9 2:35 - Get the real data and verify it's right
+
+The (real) scaling law data (roughly D = (N_i, D_i, L_i, ..., maybe other features like num heads, layers, width etc, )}^n_{i=1} ):
+
+    1. Pythia [x] --> we got pile ce
+    2. OPT
+    3. Cerebras-GPT
+    4. GPT-Neo/J/NeoX
+    5. MPT
+    6. Falcon
+    7. LLaMA
+    8. Ludwig's
+    9. Chinchilla
+    10. Chinchilla fixed/corrected
+
+All data should have consistent format/same columns. If the value of that column is not know then 
+a value none is placed. 
+
+let's make sure the pythia data is correct first. Verify it by checking the official pythia data online and correct anything that might be wrong. Data is `/Users/brandomiranda/dark-matter2/data/pythia_data.csv`
+
+-
+
+I don't understand. There are 8 rows in the official table 1 https://arxiv.org/pdf/2304.01373  of the paper. Can you explain to me why there are 73 in the final table? /Users/brandomiranda/dark-matter2/data/pythia_data.csv I'm really confused /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/research_papers/pythia table.png
+
+- 
+
+It seems the losses for pythia aren't easy to extract. Very weird. I guess the
+only way to get them is to go through their wandb logs or related logs more 
+carefully. Or contacting Hailey or/and Stella directly. 
+
+I think I will table the pythia models and move on, given it's not clear to me
+if the team is ok with adding more collaborators. 
+
+-
+
+Let's check Ludwig's data. That scaling ladder/series is open/public and likely
+easier to collaborate since they are at Stanford. 
+
+-
+
+let's get the corrected chinchilla: https://arxiv.org/abs/2509.23963.
+
+-
+
+Given this table for the pile ce loss, it seems we have a mistake in the number of parameters of the models? /Users/brandomiranda/dark-matter2/data/pythia_final_ckpt_test_loss.csv 
+
+https://arxiv.org/pdf/2304.03208 
