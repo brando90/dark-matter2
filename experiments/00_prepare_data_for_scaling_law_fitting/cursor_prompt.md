@@ -402,4 +402,16 @@ Add the raw CSV paths to .gitignore and commit only the .csv.gz.
 
 --
 
-# Dec 10 2025 - Next; Make sure we can unzip all the data and then my scaling laws scripts work
+# Dec 10 2025 - Next; Make sure we can unzip all the data and then my scaling laws scripts work on this data too
+
+
+1. Let's check if the format (columns etc) for the synthetic chinchilla verification code we made is the same as the 
+
+Currently we have code that works
+
+/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.sh
+
+make sure all the tests pass. 
+
+
+TODO: what is; /Users/brandomiranda/dark-matter2/data/scaling_law_unified.csv?
