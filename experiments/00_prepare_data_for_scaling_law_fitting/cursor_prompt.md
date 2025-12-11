@@ -400,3 +400,6 @@ Keep the originals .csv for local use but we don't want to push them.
 Add the raw CSV paths to .gitignore and commit only the .csv.gz.
 ```
 
+--
+
+# Dec 10 2025 - Next; Make sure we can unzip all the data and then my scaling laws scripts work
