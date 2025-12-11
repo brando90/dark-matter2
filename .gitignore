@@ -263,3 +263,7 @@ tmp/
 
 # Large CLRS book files (too large for GitHub)
 experiments/22_clrs_formalizaations/intro_to_alg_clrs_4th/
+
+# Data: keep raw CSVs local, track only compressed versions
+data/**/*.csv
+!data/**/*.csv.gz
