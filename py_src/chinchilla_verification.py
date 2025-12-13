@@ -90,23 +90,23 @@ def plot_chinchilla_residuals(df: pd.DataFrame, fitted, save_path: Path):
     """Plot residuals (L_actual - L_pred) vs L_pred"""
     L_pred = predict_joint(fitted, df['N_params'].values, df['tokens_D'].values)
     residuals = df['loss'].values - L_pred
-    
+
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
+
     axes[0].scatter(L_pred, residuals, alpha=0.5, s=20)
     axes[0].axhline(0, color='red', linestyle='--', linewidth=2)
     axes[0].set_xlabel('Predicted Loss')
     axes[0].set_ylabel('Residual')
     axes[0].set_title('Residuals (should be symmetric around 0)')
     axes[0].grid(True, alpha=0.3)
-    
+
     axes[1].hist(residuals, bins=30, alpha=0.7, edgecolor='black')
     axes[1].axvline(0, color='red', linestyle='--', linewidth=2)
     axes[1].set_xlabel('Residual')
     axes[1].set_ylabel('Count')
     axes[1].set_title('Residual Distribution')
     axes[1].grid(True, alpha=0.3, axis='y')
-    
+
     plt.tight_layout()
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -175,7 +175,7 @@ def plot_kaplan_vs_chinchilla_compute_loss(fitted: JointParams, plots_dir: Path,
     ax.legend()
     ax.grid(True, which='both', alpha=0.3)
     
-    out_path = plots_dir / "kaplan_chinchilla_compute_loss.png"
+    out_path = plots_dir / "compute_loss_offset_vs_nooffset.png"
     plt.tight_layout()
     plt.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -302,7 +302,7 @@ def run_chinchilla_verification(
     plots_dir: Path,
     n_points: int = 400,
     seed: int = 42,
-    load_only: bool = False
+    load_only: bool = False,
 ) -> Dict[str, Any]:
     """
     Run full Chinchilla verification pipeline.
@@ -385,10 +385,9 @@ def run_chinchilla_verification(
     
     # Generate plots
     logger.info("\nGenerating plots...")
-    plot_chinchilla_residuals(df, fitted, plots_dir / "chinchilla_verification_residuals.png")
+    plot_chinchilla_residuals(df, fitted, plots_dir / "residuals.png")
     compute_loss_info = plot_kaplan_vs_chinchilla_compute_loss(fitted, plots_dir, df)
     iso_model_info, iso_data_info = plot_isoflops_frontiers(df, plots_dir)
-    fitted_vs_true_info = plot_fitted_vs_true_scaling_law(df, fitted, plots_dir)
     
     # Compute metrics
     L_pred = predict_joint(fitted, df['N_params'].values, df['tokens_D'].values)
@@ -399,60 +398,40 @@ def run_chinchilla_verification(
     logger.info(f"\nFit quality: R²={r_squared:.6f}, RMSE={rmse:.6f}")
     
     # Build deliverables with detailed self-contained reasons
-    residuals_path = plots_dir / 'chinchilla_verification_residuals.png'
+    residuals_path = plots_dir / 'residuals.png'
     t = CHINCHILLA_REPLICATION_PARAMS  # target params for reference
-    
-    # Compute relative errors for plot1
-    rel_errors = np.abs(L_pred - df['loss'].values) / df['loss'].values
-    rmse_rel = np.sqrt(np.mean(rel_errors**2))
-    max_rel_error = np.max(rel_errors)
     
     # Get exponents for cross-check
     a_N = iso_model_info['exponent'] if iso_model_info else 0.5
     a_D = iso_data_info['exponent'] if iso_data_info else 0.5
     
-    reason1 = (
-        f"Synthetic L uses the same form L=E+A/N^α+B/D^β with 2% log-normal noise, so rel errors should be tiny (RMSE_rel≈0.02, max_rel<0.10). "
-        f"If points stray far from y=x (large rel errors/curvature), the fit or functional form is wrong."
-    )
-    
     reason2 = (
-        f"2% multiplicative noise ⇒ residuals ~ Normal(0, 0.02·loss); expect symmetric cloud around 0 and a bell-shaped histogram. "
-        f"Slope or funnel = bias/heteroscedasticity; skew/bimodality = model misspecification or outliers."
+        "Residuals should be roughly symmetric around 0 with no funnel shape; strong skew/funnel suggests bias or heteroscedasticity."
     )
     
     reason3 = (
-        f"True loss floors at E≈{t['E']}; Chinchilla fits L→E as C→∞, Kaplan forces L→0, so Kaplan underfits the high-compute tail. "
-        f"We expect Chinchilla RMSE ≪ Kaplan; if similar, the offset isn’t working or there’s a bug."
+        "Offset vs no-offset compute–loss: the solid (offset) curve should clearly outperform the dashed (no-offset), indicating the irreducible-loss term is needed."
     )
     
     reason4 = (
-        f"IsoFLOPs theory: N_opt ∝ C^a with a=α/(α+β)≈0.486; straight line slope ≈0.5 in log-log and a_N+a_D≈1 (C∝N·D). "
-        f"Curvature or slope far from 0.5/ a_N+a_D≠1 means bad minima or fit."
+        "IsoFLOPs model frontier: expect a straight line in log–log; slope ≈ β/(α+β) if the joint law holds. Curvature or wild slope implies the fit’s optimum sizing is unreliable."
     )
     
     reason5 = (
-        f"D_opt exponent should be b=β/(α+β)≈0.514 and complement N (1−a_N); expect straight log-log line, a_N+a_D≈1. "
-        f"Large deviations/curvature mean the IsoFLOPs minima or fit are off; consistency with plot4 validates D/N≈20 guidance."
+        "IsoFLOPs data frontier: complements model frontier; slopes should roughly sum to 1 (since C∝N·D). Curvature or mismatch to plot4 suggests the minima are unstable."
     )
     
     deliverables = [
         {
-            'name': 'fitted_vs_true',
-            'path': fitted_vs_true_info['path'],
-            'check': f"Points tight on y=x; RMSE_rel={rmse_rel:.4f} (expect ≈0.02), max_rel={max_rel_error:.4f} (expect <0.10)",
-            'reason': reason1
-        },
-        {
             'name': 'residuals',
             'path': residuals_path,
-            'check': "Residuals vs fitted loss: symmetric around y=0, no funnel. Histogram: bell-shaped at 0.",
+            'check': "Residuals vs fitted loss: roughly symmetric around y=0; no funnel.",
             'reason': reason2
         },
         {
-            'name': 'kaplan_vs_chinchilla',
+            'name': 'compute_loss_offset_vs_nooffset',
             'path': compute_loss_info['path'],
-            'check': f"Chinchilla RMSE ({compute_loss_info['rmse_chi']:.6f}) ≪ Kaplan RMSE ({compute_loss_info['rmse_kap']:.4f})",
+            'check': f"Offset RMSE ({compute_loss_info['rmse_chi']:.6f}) should be well below no-offset RMSE ({compute_loss_info['rmse_kap']:.4f})",
             'reason': reason3
         },
     ]
@@ -496,6 +475,5 @@ def run_chinchilla_verification(
         'ratio_ok': 15 <= avg_ratio <= 30,
         'compute_loss_info': compute_loss_info,
         'iso_model_info': iso_model_info,
-        'iso_data_info': iso_data_info,
-        'fitted_vs_true_info': fitted_vs_true_info
+        'iso_data_info': iso_data_info
     }

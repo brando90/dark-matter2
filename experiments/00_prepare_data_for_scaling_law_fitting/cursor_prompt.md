@@ -166,3 +166,39 @@ Also our sclaing law fits code should have all the fixes the chinchilla scaling 
 -
 
 all algorithmic details and make sure our scaling laws code works with both the discrepencies resolving data and the hitchhikers data.
+
+--
+
+Let's do final fixes to the readme plots.md that specifies the checks for the 
+resolving discrepencies scaling data fits (/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots_out_experiment_results_summary/README_plots.md).
+
+For this data we don't have a true fitted scaling thing, so we don't need this I think:
+`- `fitted_vs_true_scaling_law.png`: Points should hug y=x on log-log axes; large curvature/spread ⇒ poor fit.`. So not only do we need to remove that plot but we need to change
+any code that generates it or that prints the strings to produce the readme file 
+for us to check/verify it. 
+
+--> `- `residuals.png`: Residuals centered at 0 with symmetric cloud and bell-ish histogram; funnels/skew ⇒ bias/misspecification.` I think this one makes sense. However, I'm not
+sure about it. Like is that specific condition sensible for a general scaling law
+data that we are to fit? Like does it have to hold for the resolving discrependcies in scalings laws data we are to fit? 
+
+--> `- `compute_loss_offset_vs_nooffset.png`: Offset (solid) curve should outperform no-offset (dashed); RMSE(solid) ≪ RMSE(dashed).` what is this? why is this needed? It doesn't make sense. I need much more details when producing that readme .md so I know what that is 
+actually testing. Do we really need it?
+
+--> We definitively need isoflops stuff. But these checks just don't have enough details for me to understand what it's suppose to be checking:
+```
+- `isoflops_model_size_vs_compute.png`: Straight line in log-log; slope should be plausible (≈β/(α+β) if model-data joint law holds).
+- `isoflops_dataset_size_vs_compute.png`: Complements model-size plot; slopes should sum to ≈1 if C∝N·D holds.
+```
+
+--> `Treat the fit as suspect if plots show curvature/funnels, R² is low, or offset vs no-offset is not clearly separated.` this needs to change at the end according to the new requirements I asked please. 
+
+I renamed both:
+
+-> /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_fit_scalings_laws.sh 
+-> /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_fit_scalings_laws.sh
+
+we don't need the chinchilla verification name or any checks for chinchilla since we are only fitting the resolving scaling laws discrepencies data. 
+
+try again. Rerun and reproduce the plots and make sure it's all correct. Check 
+the output and plots/files carefully. 
+
