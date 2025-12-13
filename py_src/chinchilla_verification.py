@@ -298,7 +298,7 @@ def plot_isoflops_frontiers(df: pd.DataFrame, plots_dir: Path):
 
 
 def run_chinchilla_verification(
-    data_path: Path,
+    data_path,
     plots_dir: Path,
     n_points: int = 400,
     seed: int = 42,
@@ -321,18 +321,26 @@ def run_chinchilla_verification(
     Returns:
         Dict with verification results and metrics
     """
-    data_path = Path(data_path)
     plots_dir = Path(plots_dir)
-    
-    # Generate or load data
-    if data_path.exists():
-        logger.info(f"Loading existing data from {data_path}")
-        df = pd.read_csv(data_path)
-    elif not load_only:
-        logger.info(f"Generating {n_points} synthetic runs...")
-        df = generate_synthetic_data_chinchilla_replication(n_points, seed, data_path)
+    df = None
+
+    # Accept DataFrame or path
+    if isinstance(data_path, pd.DataFrame):
+        df = data_path.copy()
+        data_source = "dataframe"
     else:
-        raise FileNotFoundError(f"Data CSV not found and load_only=True: {data_path}")
+        data_path = Path(data_path)
+        if data_path.exists():
+            logger.info(f"Loading existing data from {data_path}")
+            df = pd.read_csv(data_path)
+        elif not load_only:
+            logger.info(f"Generating {n_points} synthetic runs...")
+            df = generate_synthetic_data_chinchilla_replication(n_points, seed, data_path)
+        else:
+            raise FileNotFoundError(f"Data CSV not found and load_only=True: {data_path}")
+        data_source = str(data_path)
+
+    logger.info(f"Using data source: {data_source}")
     
     # Ensure required columns
     required = {'N_params', 'tokens_D', 'loss'}

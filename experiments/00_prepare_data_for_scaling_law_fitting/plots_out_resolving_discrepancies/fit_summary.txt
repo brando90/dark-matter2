@@ -1,0 +1,10 @@
+Dataset: resolving_discrepancies
+Rows used: 975
+Fitted E: 0.000167
+Fitted A: 9.764829
+Fitted α: 0.060862
+Fitted B: 4534.854449
+Fitted β: 0.432704
+R²: 0.901991
+RMSE: 0.291292
+Avg D/N ratio: 6.975547
