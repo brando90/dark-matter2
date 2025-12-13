@@ -12,6 +12,11 @@ from pathlib import Path
 import fire
 import wandb
 
+# Ensure repo root is on sys.path for `py_src` imports when run from subdir
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from py_src.chinchilla_verification import (
     run_chinchilla_verification,
     generate_synthetic_data_chinchilla_replication,
@@ -20,6 +25,34 @@ from py_src.chinchilla_verification import (
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def write_plots_readme(plots_dir: Path, results, data_label: str):
+    """Write a concise guide explaining each plot and the correctness checks."""
+    plots_dir = Path(plots_dir)
+    readme = plots_dir / "README_plots.md"
+    fitted = results['fitted']
+    target = CHINCHILLA_REPLICATION_PARAMS
+    content = f"""# Scaling-Law Plots Guide ({data_label})
+
+Fitted params: E={fitted.E:.3f}, A={fitted.A:.2f}, α={fitted.alpha:.3f}, B={fitted.B:.2f}, β={fitted.beta:.3f}
+Fit quality: R²={results['r_squared']:.4f}, RMSE={results['rmse']:.4f}, D/N≈{results['avg_ratio']:.1f}
+
+For Chinchilla replication, a correct fit should be near:
+E≈{target['E']}, A≈{target['A']}, α≈{target['alpha']}, B≈{target['B']}, β≈{target['beta']}, D/N≈20.
+
+- `fitted_vs_true_scaling_law.png`: Points should hug y=x on log-log axes; big curvature or spread ⇒ bad fit.
+- `chinchilla_verification_residuals.png`: Residuals centered at 0 with symmetric cloud and bell-ish histogram; funnels/skew ⇒ bias.
+- `kaplan_chinchilla_compute_loss.png`: Solid (offset) curve should sit on points; its RMSE must be ≪ dashed (no-offset) curve.
+- `isoflops_model_size_vs_compute.png`: Log-log line slope ≈ β/(α+β) (~0.5 for Chinchilla); should be straight, not curved.
+- `isoflops_dataset_size_vs_compute.png`: Slope ≈ α/(α+β) (~0.5); complements the model-size plot (slopes sum ≈ 1).
+- `verification.log` / `scaling_laws_fit.log`: Check printed params vs targets and R²>0.95 for a clean replication.
+- `fit_summary.txt` (if present): One-line sanity check of fitted params and metrics.
+
+If D/N is far from ~20 or any slope/plots look off, treat the fit as suspect.
+"""
+    readme.write_text(content)
+    logger.info(f"Wrote plots README to {readme}")
 
 
 def _main(
@@ -109,6 +142,10 @@ def _main(
     else:
         logger.info("⚠️  VERIFICATION INCOMPLETE - review plots above")
     logger.info("="*60)
+
+    # Write per-run README for quick inspection
+    data_label = data_csv if data_csv else "synthetic"
+    write_plots_readme(plots_dir, results, data_label)
     
     # Remove file handler to avoid duplicate logs on repeated runs
     logger.removeHandler(file_handler)
