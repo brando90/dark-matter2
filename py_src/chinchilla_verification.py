@@ -346,7 +346,16 @@ def run_chinchilla_verification(
     required = {'N_params', 'tokens_D', 'loss'}
     missing = required.difference(df.columns)
     if missing:
-        raise ValueError(f"Missing required columns {missing} in {data_path}")
+        # Try to derive from resolving_discrepancies-style columns
+        needed_alt = {'width', 'depth', 'max_step', 'seq_len', 'bs', 'final_val_loss'}
+        if needed_alt.issubset(df.columns):
+            df = df.copy()
+            df['N_params'] = df['width'].astype(float) * df['depth'].astype(float)
+            df['tokens_D'] = df['max_step'].astype(float) * df['seq_len'].astype(float) * df['bs'].astype(float)
+            df['loss'] = df['final_val_loss'].astype(float)
+            logger.info("Derived N_params, tokens_D, loss from resolving_discrepancies-style columns")
+        else:
+            raise ValueError(f"Missing required columns {missing} in {data_path}")
     if 'flops_C' not in df.columns:
         df['flops_C'] = 6.0 * df['N_params'] * df['tokens_D']
     

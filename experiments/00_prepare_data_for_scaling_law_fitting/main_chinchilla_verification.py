@@ -32,24 +32,23 @@ def write_plots_readme(plots_dir: Path, results, data_label: str):
     plots_dir = Path(plots_dir)
     readme = plots_dir / "README_plots.md"
     fitted = results['fitted']
-    target = CHINCHILLA_REPLICATION_PARAMS
     content = f"""# Scaling-Law Plots Guide ({data_label})
 
 Fitted params: E={fitted.E:.3f}, A={fitted.A:.2f}, α={fitted.alpha:.3f}, B={fitted.B:.2f}, β={fitted.beta:.3f}
 Fit quality: R²={results['r_squared']:.4f}, RMSE={results['rmse']:.4f}, D/N≈{results['avg_ratio']:.1f}
 
-For Chinchilla replication, a correct fit should be near:
-E≈{target['E']}, A≈{target['A']}, α≈{target['alpha']}, B≈{target['B']}, β≈{target['beta']}, D/N≈20.
+If you ran the synthetic Chinchilla replication, expected targets are E≈1.82, A≈482, α≈0.34, B≈2085, β≈0.36, D/N≈20.
+For other datasets (resolving discrepancies, Hitchhiker/ColPret, etc.), these targets do not apply—focus on plot shapes and R².
 
-- `fitted_vs_true_scaling_law.png`: Points should hug y=x on log-log axes; big curvature or spread ⇒ bad fit.
-- `chinchilla_verification_residuals.png`: Residuals centered at 0 with symmetric cloud and bell-ish histogram; funnels/skew ⇒ bias.
-- `kaplan_chinchilla_compute_loss.png`: Solid (offset) curve should sit on points; its RMSE must be ≪ dashed (no-offset) curve.
-- `isoflops_model_size_vs_compute.png`: Log-log line slope ≈ β/(α+β) (~0.5 for Chinchilla); should be straight, not curved.
-- `isoflops_dataset_size_vs_compute.png`: Slope ≈ α/(α+β) (~0.5); complements the model-size plot (slopes sum ≈ 1).
-- `verification.log` / `scaling_laws_fit.log`: Check printed params vs targets and R²>0.95 for a clean replication.
+- `fitted_vs_true_scaling_law.png`: Points should hug y=x on log-log axes; large curvature/spread ⇒ poor fit.
+- `chinchilla_verification_residuals.png`: Residuals centered at 0 with symmetric cloud and bell-ish histogram; funnels/skew ⇒ bias/misspecification.
+- `kaplan_chinchilla_compute_loss.png`: Offset (solid) curve should outperform no-offset (dashed); RMSE(solid) ≪ RMSE(dashed).
+- `isoflops_model_size_vs_compute.png`: Straight line in log-log; slope should be plausible (≈β/(α+β) if model-data joint law holds).
+- `isoflops_dataset_size_vs_compute.png`: Complements model-size plot; slopes should sum to ≈1 if C∝N·D holds.
+- `verification.log` / `scaling_laws_fit.log`: Inspect fitted params and R². For non-Chinchilla data, ignore ✓/✗ against Chinchilla targets.
 - `fit_summary.txt` (if present): One-line sanity check of fitted params and metrics.
 
-If D/N is far from ~20 or any slope/plots look off, treat the fit as suspect.
+Treat the fit as suspect if plots show curvature/funnels, R² is low, or offset vs no-offset is not clearly separated.
 """
     readme.write_text(content)
     logger.info(f"Wrote plots README to {readme}")

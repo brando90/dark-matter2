@@ -111,3 +111,58 @@ Can we do that? also there are way too many files and things in the repo, can we
 What I need is a read me that is automatically written to /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots_out_resolving_discrepancies each time the `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.sh` is ran so that we can just read it and it's obvious how to check each plot. It should be very concise but clear.
 
 Can you do that?
+
+--
+
+Great now I want to do a similar task but with this repo: `https://github.com/IBM/ColPret` the hitchhickers scaling laws data (https://arxiv.org/abs/2410.11840, https://github.com/IBM/ColPret).
+
+Do it and create a similar folder with the plots_* folder but for hitchhickers data. 
+We likely need to modify the column names to match the column names of the resolving discrepencies data
+
+```
+dataset,hparams,warmup,decay,width,depth,warmup_tokens,beta1,beta2,world_size,lr,seed,seq_len,vocab_size,grad_clip_norm,optimizer,precision,qk_norm,z_loss_coefficient,bs,independent_wd,max_step,ckpt_path,final_val_loss,min_val_loss,initial_val_loss,final_train_loss,min_train_loss,total_training_steps
+rw,base,short,kaplan,1312.0,26.0,611958784,0.9,0.95,32,0.003,0.0,2048.0,50432.0,True,adamw,amp_bfloat16,True,0.0001,256.0,0.0001,13581,dataset=rw/hparams=base_warmup=short_decay=kaplan/params=611M_maxstep=13581,3.10367269960422,3.10367269960422,8.273298949084236,3.101662397384644,3.0841715335845947,705
+```
+Do it. Make sure everything is correct. Do not hallucinate, no not invent anything please. 
+
+References:
+- [Arxiv, A Hitchhiker's Guide to Scaling Law Estimation](https://arxiv.org/abs/2410.11840)
+- [Github, A Hitchhiker's Guide to Scaling Law Estimation](https://github.com/IBM/ColPret)
+
+--
+
+why is the path /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots_out_colpret missing the git_summary.txt file like the other discrepencies file has...somehting must be wrong or incomplete? /Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/plots_out_resolving_discrepancies/fit_summary.txt
+
+Also, the columns of the hitchhicker data (also called colpret for some reason) has totally different columns to the data we actually have working:
+```
+dataset,hparams,warmup,decay,width,depth,warmup_tokens,beta1,beta2,world_size,lr,seed,seq_len,vocab_size,grad_clip_norm,optimizer,precision,qk_norm,z_loss_coefficient,bs,independent_wd,max_step,ckpt_path,final_val_loss,min_val_loss,initial_val_loss,final_train_loss,min_train_loss,total_training_steps
+rw,base,short,kaplan,1312.0,26.0,611958784,0.9,0.95,32,0.003,0.0,2048.0,50432.0,True,adamw,amp_bfloat16,True,0.0001,256.0,0.0001,13581,dataset=rw/hparams=base_warmup=short_decay=kaplan/params=611M_maxstep=13581,3.10367269960422,3.10367269960422,8.273298949084236,3.101662397384644,3.0841715335845947,705
+rw,
+```
+
+Can you make sure we create a .csv for the hitchhiker data/colpert data with compatible columns so the scaling laws code we have `/Users/brandomiranda/dark-matter2/experiments/00_prepare_data_for_scaling_law_fitting/main_chinchilla_verification.sh` actually works and each file/plot in the plots_* (for colpert/hitchhickers) passes the test? Run it and look at the output of each plot and file and make sure it actually passes the tests when fitting the scaling laws. It should still working with the `/Users/brandomiranda/dark-matter2/data/data_resolving_discrepancies/experiment_results_summary.csv`.
+
+of course it doesn't match the chinchilla targets. None of them should. They are different data. It means we have to fix something. The python writing the checks in the read me I think. Maybe even more. Think carefully. What I really need is the previous discrepencies resolving data/code to work and the new hitchhiekrs data to also work. 
+
+
+--
+
+what the fuck:
+```
+Loss = A × (parameters)^(-α) × (tokens)^(-β)
+```
+```
+
+that is not the right scaling law. We should be using the standard chinchilla one and our code should be using such chinchilla scaling laws:
+
+```
+L(N, D) = E + A*N^{-alpha} + B*D^{-beta}
+```
+
+so we need to fix all the code and make sure it actually works and make sure all the plots for both data sets (discrependcies and hitchhiker works) 
+
+Also our sclaing law fits code should have all the fixes the chinchilla scaling replication attempt has by tamay besiroglu: `https://arxiv.org/abs/2404.10102` please. 
+
+-
+
+all algorithmic details and make sure our scaling laws code works with both the discrepencies resolving data and the hitchhikers data.

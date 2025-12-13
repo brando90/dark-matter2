@@ -4,7 +4,7 @@
 This dataset contains the results of systematic scaling laws experiments from the paper "Resolving Discrepancies in Compute-Optimal Scaling of Language Models" by Tomer Porian et al. Each row represents one complete training run of a transformer language model.
 
 ## Data Structure
-- **Total rows**: 977 (one per training experiment)
+- **Total rows**: 977 (one per training experiment, 1 header/columns, 1 empty new line)
 - **Total columns**: 29
 - **Source**: https://github.com/formll/resolving-scaling-law-discrepancies
 
@@ -57,9 +57,10 @@ Each row is one experimental measurement in a scaling laws study. It captures th
 
 ## Scaling Laws Context
 This data enables fitting compute-optimal scaling laws of the form:
-```
-Loss = A × (parameters)^(-α) × (tokens)^(-β)
-```
+
+L(N, D) = E + A * N^{-α} + B * D^{-β}
+
+Additive Chinchilla-style loss with irreducible floor E and separate model/data exponents. Compute scaling follows C ≈ 6 N D.
 
 Where:
 - **Parameters**: Model size (width × depth × other factors)
