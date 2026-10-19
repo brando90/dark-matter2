@@ -9,7 +9,7 @@ hparams) shows a second term, and DM-1's power table says those nulls mean "not 
 
 Sizes at D = 20N (total parameters; a size needs a run at or past 20 tokens/param, and for Chinchilla two runs that bracket it, with tokens/param on Hoffmann's reported N):
 - Porian: 14 of 16 on every curve, except owt2 tuned-long-const with 11 of 13 (the data has no 28M, 37M or 57M run for it). The 611M and 901M runs end at about 11 and 5 tokens/param.
-- Chinchilla: 28 of 43, kept range 202M-6.3B. Dropped: the nine sizes from 54M to 183M, and also 234M. All of their runs are past 20 tokens/param, with the shortest at 22-294, and 54M has only one run. 2.1B and the four sizes of 8.6B or more are dropped too, because all of their runs fall short of 20 (longest 1.9-14.9). 202M, 259M and 2.4B-6.3B have runs on both sides of 20 and are kept.
+- Chinchilla: 28 of 43, kept range 202M-6.3B. Dropped: the nine sizes from 54M to 183M, and also 234M. All of their runs are past 20 tokens/param, with the shortest at 21.5-294, and 54M has only one run. 2,127M and the four sizes of 8.6B or more are dropped too, because all of their runs fall short of 20 (longest 1.9-14.9). 202M, 259M, 2,113M and 2.4B-6.3B have runs on both sides of 20 and are kept.
 - LLaMA: 15 of 21. All six sizes of 0.9B and up are dropped: their runs end at 1.4-16 tokens/param.
 
 Full tables: results/summary.md. Code: data.py (ladders), fitlib.py (DM-1 fits + joint fit), dm2.py (fits,
