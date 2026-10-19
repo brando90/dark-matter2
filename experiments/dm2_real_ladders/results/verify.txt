@@ -6,5 +6,11 @@ PASS  A bootstraps: 48 testable rows, nboot [np.int64(1000)]
 PASS  analysis B complete: 8 joint fits, nboot [np.int64(1000)]
 PASS  post hoc joint fits: 4 fits
 PASS  RSS_2 <= RSS_1: 0 violations
-PASS  manifest: 11 files hashed
+PASS  DM-3 c recovery (c = 0.3, sigma 0.005, 50 curves): median c1 0.299, profile set covers 0.3 in 0.92
+PASS  DM-3 null control, c free: c-free second-term test fires in 0.00 of 50 (c grid step 0.04 for the 2-term profile)
+PASS  DM-3 Kaplan fitter recovery: p 0.9000 (0.9), q 0.2800 (0.28), RSS 3.0e-30
+PASS  DM-3 reproduces DM-2 at c = 0, 1: max rel. diff (alpha1, rss1): rw N_nonemb 0.0e+00, rw N_total 0.0e+00, owt2 N_nonemb 0.0e+00, owt2 N_total 0.0e+00
+PASS  DM-3 bootstraps: A3 [np.int64(1000)], B3 [np.int64(1000)], 1000 and 1000 rows
+PASS  DM-3 RSS_2 <= RSS_1: 0 violations over 802 A3 and 62 B3 grid points
+PASS  manifest: 24 files hashed
 ALL PASS

@@ -191,3 +191,17 @@ Kaplan et al. (2020) eq. 1.5 with an irreducible term and an optional second N t
    datasets.
 5. Every bootstrap has 1,000 refits; RSS_2 <= RSS_1 (A3 at every c on the grid, B3 K2 vs K1 at the same c);
    manifest hashes match.
+
+## DM-3 changes after the first fit
+A smoke run (3 bootstrap refits, not kept) came before the full run. It showed the 1-term RSS profile in c has two
+separate low regions (near c = 0.05, where E hits its bound 0, and toward the grid's top, c = 2). So:
+1. The 95% profile interval is reported as a set of intervals (e.g. "[0.03, 0.08] U [1.6, 2.0+]"), and the decision
+   rule's "CI excludes 1" means 1 is in none of them.
+2. Post hoc, labelled: the 1-term RSS at c = 3, 5, 10, 30, 100, 1e4 and with N = N_emb alone (width only), to see
+   whether the fall past c = 2 continues.
+3. verify.py check 1 uses the rw 1-term fit at c = 0.3 for all three of E, A, alpha (not E 1.8, alpha 0.3) so the
+   synthetic curves look like the data; checks 1-2 profile c on a 0.02 (1-term) and 0.04 (2-term) grid for speed.
+4. Post hoc, labelled (dm3_posthoc.py, results/dm3_posthoc_K1_slice.csv): the fitted K1 surface evaluated along
+   D = 20 N_total, put through the DM-2 reverse ladder, to ask whether the Kaplan data term alone reproduces the
+   small-model excess.
+5. The full run used 2 workers on a machine at load ~13 (4 cores): ~95 min instead of the planned ~45.
