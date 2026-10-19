@@ -17,7 +17,7 @@ Full tables: results/summary.md. Code: data.py (ladders), fitlib.py (DM-1 fits +
 | Porian owt2 tuned-short-const | 14 | 4.35 | 29.8 | 2.99 | 1.31 | 0.099 / 0.009 | +0.096, 8/9 |
 | Porian rw / owt2 tuned-long-const | 14 / 11 | 0.67 / 0.21 | -1.2 / -3.5 | 0.11 / 0.10 | - | 0.093 / 0.071 (no gain) | +0.110 / -0.007 |
 | Porian base hparams (6 curves) | 14 each | <= 0.03 | < 0 | - | - | no gain (2-term worse on kaplan-long) | +0.47 to +0.64 (mis-tuned small models) |
-| Chinchilla (Hoffmann, Epoch points) | 28 (54M-15B) | 0.16 | -3.8 | 0.01 | - | 0.024 / 0.024 | - (no sizes < 100M at 20N) |
+| Chinchilla (Hoffmann, Epoch points) | 28 (202M-6.3B) | 0.16 | -3.8 | 0.01 | - | 0.024 / 0.024 | - (no sizes < 100M at 20N) |
 | LLaMA (MAD) | 15 (40M-650M) | 0.01 | -5.3 | 0.02 | - | 0.116 / 0.116 | +0.127, 2/2 |
 
 - Fast term in the two positive curves: 8-12% of the main term at 5M; alpha drops from 0.25-0.30 (1-term) to
@@ -39,7 +39,7 @@ Full tables: results/summary.md. Code: data.py (ladders), fitlib.py (DM-1 fits +
   together) was meaningless.
 
 ## Reading the nulls with DM-1
-Porian/Chinchilla/LLaMA at 20N span 1.2-1.9 decades above 5M, the nearest DM-1 cell is [1e7, 1e9] at 8 points/decade.
+Porian, Chinchilla and LLaMA at 20N span 1.2-1.9 decades (5M-455M, 202M-6.3B, 40M-651M); the nearest DM-1 cell is [1e7, 1e9] at 8 points/decade.
 There the primary rule's power is <= 0.03 for s <= 0.3 and 0.04-0.54 at s = 1 (s = fast/main term at 1M params),
 with 0 false positives in 400 null replicates. So: a null on these ladders rules out only a very large term; and the
 positive Porian result, if real, corresponds to s ~ 0.5-0.8 at 1M (8-12% at 5M, beta - alpha ~ 1.2); DM-1's power at
