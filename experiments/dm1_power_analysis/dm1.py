@@ -172,6 +172,7 @@ def main():
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--workers", type=int, default=os.cpu_count())
     ap.add_argument("--reps-scale", type=float, default=1.0, help="multiply replicate counts (smoke tests)")
+    ap.add_argument("--min-cell", type=int, default=0, help="skip cells below this index (run only later windows)")
     args = ap.parse_args()
     done = set()
     for p in glob.glob(os.path.join(args.out, "raw_shard*.csv")):  # resume: skip replicates already written
@@ -179,6 +180,8 @@ def main():
             done |= {(int(r["cell"]), int(r["rep"])) for r in csv.DictReader(fh)}
     jobs = []
     for c in cells():
+        if c["cell"] < args.min_cell:
+            continue
         reps = [r for r in range(max(1, int(c["reps"] * args.reps_scale))) if (c["cell"], r) not in done]
         for i in range(0, len(reps), 25):
             jobs.append((c, reps[i:i + 25]))
