@@ -205,3 +205,180 @@ separate low regions (near c = 0.05, where E hits its bound 0, and toward the gr
    D = 20 N_total, put through the DM-2 reverse ladder, to ask whether the Kaplan data term alone reproduces the
    small-model excess.
 5. The full run used 2 workers on a machine at load ~13 (4 cores): ~95 min instead of the planned ~45.
+
+# DM-4 addendum: a ladder we train, varying embedding size at fixed body size (design; nothing run)
+
+Written 2026-10-19, after DM-3 and before any DM-4 run, tokenizer or data download. Files:
+experiments/dm4_embedding_ladder/ (design.py -> runs.csv, budget.csv, budget.md; power.py -> power.csv, power.md).
+No training is launched until Brando confirms the GPU budget for that phase (see Budget and gates).
+
+## Why this design
+DM-3 could not pin the embedding weight c in N_c = N_nonemb + c N_emb: along one Porian ladder N_emb = 50,432 w
+moves in lockstep with the body, so c, E and the second term trade off (95% set split in two, bootstrap z ~0).
+DM-4 breaks that collinearity by changing N_emb at a fixed body (same width, depth, hyperparameters, data):
+1. **tied vs untied** at a fixed tokenizer: the untied model adds V w input-embedding parameters at the same compute
+   (the input lookup is ~free; the output matmul is the same) and the same tokens. This is the clean lever for c.
+2. **vocab 8,192 / 32,768 / 50,432**: changes N_emb by 6x at a fixed body, but also changes the tokenizer, so each
+   vocab gets its own intercept E_g and losses are put on one scale (Metric).
+
+## Ladder (Porian's tuned shapes and hyperparameters, read from data/data_resolving_discrepancies)
+| w | depth | N_nonemb | lr | bs (seqs of 2048) | beta2 | warmup tokens | seeds |
+|---|---|---|---|---|---|---|---|
+| 128 | 4 | 1.05M | 0.0115 | 28 | 0.99 | 7.50M | 3 |
+| 160 | 5 | 1.74M | 0.0105 | 32 | 0.99 | 9.81M | 3 |
+| 224 | 6 | 4.30M | 0.0090 | 44 | 0.99 | 15.6M | 3 |
+| 288 | 8 | 7.96M | 0.0080 | 56 | 0.99 | 22.5M | 3 |
+| 320 | 9 | 12.5M | 0.0074 | 64 | 0.99 | 28.7M | 3 |
+| 384 | 10 | 17.7M | 0.0068 | 80 | 0.99 | 37.1M | 1 |
+| 480 | 12 | 33.2M | 0.0059 | 104 | 0.99 | 57.4M | 1 |
+| 576 | 14 | 55.7M | 0.0051 | 128 | 0.99 | 84.8M | 1 |
+| 640 | 15 | 76.2M | 0.0047 | 160 | 0.99 | 108M | 1 |
+| 704 | 18 | 113.5M | 0.0043 | 192 | 0.99 | 149M | 1 |
+
+Hyperparameters are the same for every arm at a body (Porian tuned them for the 50k tied model); the LR check below
+tests whether that biases the arms. Recipe as Porian (OpenLM): pre-norm, SwiGLU (hidden 256 ceil(int(8w/3)/256)),
+rotary, qk-norm, z-loss 1e-4, independent weight decay 1e-4, AdamW beta1 0.9, grad clip 1.0, bf16 autocast,
+context 2048, linear warmup then constant LR. Trainer: OpenLM pinned to one commit if it installs wheel-only on
+Sherlock (torch 2.6.0+cu124), else a minimal trainer with this recipe; either way the anchor gate (G1) validates it.
+
+## Arms
+- Phase 1 (w128-w320), 3 seeds each: {8,192, 32,768, 50,432} x {tied, untied}. 50,432 is the GPT-NeoX tokenizer
+  Porian used, so tied-50k is Porian's exact configuration (the anchor). 8,192 and 32,768 are byte-level BPE
+  (HF tokenizers, NeoX's pre-tokenizer) trained on 1 GB of RefinedWeb from shards outside train and validation.
+- Tokenizer-family control: own byte-level BPE at 50,432, tied, seed 0, at w128 and w224 (vs NeoX 50,432). It
+  measures the offset between our BPE and NeoX's at equal vocab; it is reported, not fitted.
+- Phase 2 (w384-w704), 1 seed: untied-50k (largest embedding) and tied-8k (smallest; 5% of N_total at w704).
+  The tied-50k ladder above w320 is Porian's own rw tuned-short-const runs (w384-w1120, the sizes DM-3 used),
+  pooled only if G1 passes. Own tied-50k at w480 checks the pipeline against Porian mid-ladder (G2).
+- N_emb counts unique embedding parameters: tied V w, untied 2 V w. N_nonemb as DM-2 (no norms or biases).
+- LR check (seed 0, constant LR, to D/N = 20): tied-8k and untied-50k at w128 and w224 with lr x0.5 and x2.
+
+## Data, budget per body and seeds
+- RefinedWeb (tiiuae/falcon-refinedweb), a fixed list of parquet shards (names and sha256 recorded in phase 0);
+  validation = one held-out shard cut to the first 25M UTF-8 bytes of whole documents; tokenizer training = other
+  shards.
+- Every arm at a body sees the same text: D_bytes = 20 x N_total(tied-50k) NeoX tokens x the measured NeoX bytes per
+  token. Token counts then differ by vocab (ASSUME 3.4 / 4.15 / 4.35 bytes per token for 8k / 32k / 50k).
+- seed s sets the init and the document order; the same s gives the same byte order in every arm, so arm contrasts
+  at a body are paired by seed.
+
+## Metric
+y = validation loss in **nats per NeoX reference token** = (sum of token NLL over the validation documents, nats) /
+(number of NeoX tokens in those documents). For NeoX arms this is the usual loss; for the others it is their
+nats per byte times a constant, so all arms share DM-3's scale and its +-0.05-nat thresholds keep their meaning.
+Each arm packs the same documents into 2,048-token windows of its own tokenizer (so the context in bytes differs by
+vocab; absorbed by E_g, listed under limitations).
+
+## Schedules and annealed runs
+- Main runs: constant LR after warmup to D/N = 20 (reference tokens, as bytes), evaluated at D/N = 2.5, 5, 10, 20
+  (as DM-3's constant-LR points).
+- Annealed (WSD cooldown) branches from the constant-LR checkpoint at 0.8 D_k, LR linear to 0 over 0.2 D_k:
+  D/N = k in {5, 10, 20} for all six phase-1 arms (seed 0); k = 20 for both phase-2 arms. They replicate the
+  verdict on annealed losses and give an annealed joint (N, D) slice.
+
+## Analysis (fixed now)
+Points: seed-mean y per (body, arm) at D/N = 20 from the constant-LR runs (primary, DM-3's convention); the
+cool@20 losses repeat everything as a replication.
+- M1: y = E_g + A n_c^-alpha;  M2: M1 + B n_c^-beta, beta > alpha;  n_c = (N_nonemb + c N_emb) / 1e6,
+  g in {8k, 32k, 50k} (k = 6 and 8 with c counted). Unweighted least squares by variable projection (grids over c in
+  [0, 3] step 0.01, alpha, beta - alpha; non-negative linear solve for E_g, A, B; bounded refinement), as DM-1..3.
+  Weighted by 1/sd^2 (seed sd per body) as a sensitivity analysis only.
+- T0 (model-free): at each phase-1 body and vocab, untied minus tied, paired by seed (3 pairs), mean and t-interval.
+- P1, c identified: the 95% profile set of c under M2 ({c : n ln(RSS2(c)/RSS2_min) <= 3.84}) is one interval of
+  width <= 0.5.
+- P2, second term with c pinned: at M2's best c, Wald z(B) > 2 AND dBIC(M1 vs M2) > 2 AND bootstrap z > 2
+  (1,000 refits; seeds resampled per point where there are 3, residual bootstrap elsewhere; c re-profiled in each
+  refit on a 0.05 grid + refinement).
+- P3, reverse ladder: M1 at its best c fitted on bodies with N_nonemb >= 17.7M (w384 up: phase 2 + Porian), mean
+  residual (observed - predicted) over all phase-1 points, and the share that are positive.
+
+## Decision rule for the verdict (fixed now)
+- **Embedding accounting**: P1 holds, P2 fails, and the P3 mean residual is within +-0.05 nats.
+- **Dark matter (survives a pinned count)**: P1 holds, P2 passes, and the P3 mean residual is > +0.05 nats with
+  >= 80% of phase-1 points positive.
+- Anything else: **undetermined**, with the reason (c not identified, P2 and P3 disagree, const and annealed
+  disagree, a gate failed).
+- After phase 1 only, the result is an interim c statement (c's 95% set under M1 and M2, T0), never a dark-matter
+  verdict: P3 needs phase 2.
+
+## Gates
+- G1 (after phase 1a, w128 and w160): our NeoX tied-50k seed mean at D/N = 20 is within +-0.05 nats of Porian rw
+  tuned-short-const at D = 20N (4.796 at w128, 4.598 at w160; DM-2 values). If not, stop and fix the pipeline;
+  Porian's runs are not pooled until it passes on all five phase-1 bodies (4.335, 4.169, 4.045 at w224-w320).
+- G2 (phase 2): own tied-50k at w480 within +-0.05 nats of Porian (3.771).
+- LR check: an arm whose best LR multiplier beats x1 by more than 2 seed sd at w128 or w224 is flagged; its
+  phase-1b runs then use that multiplier (budget re-issued before launch).
+- Budget: each phase is launched only after Brando confirms its GPU-hours; phase 0 re-issues budget.md from measured
+  throughput first.
+
+## Predictions, written now
+1. G1 passes.
+2. T0: untied beats tied at 50k on every phase-1 body, but by less than c = 1 predicts.
+3. c's 95% set (M2) lies inside [0.05, 0.8] and excludes 1.
+4. P2 passes on the full design (the fast term survives a pinned c); P3 mean residual > +0.05 nats.
+   So the predicted verdict is dark matter, held with low confidence (~55%).
+5. cool@20 losses are 0.05-0.15 nats below the constant-LR values and give the same verdict.
+
+## Budget (design.py, L40S, FLOP-based: 6 N_nonemb + 6 V w + 6 depth 2048 w per token; ASSUME MFU 6-15% at
+w <= 224, 12-25% at w288-384, 20-35% above; replaced by measured throughput in phase 0)
+| phase | widths | runs | GPU-h pessimistic / central / optimistic |
+|---|---|---|---|
+| 0 | install, tokenizers, data (CPU); 200-step throughput probe per body x vocab (dev) | - | <= 0.5 |
+| 1a | 128, 160 | 77 | 4.5 / 2.7 / 1.8 |
+| 1b | 224, 288, 320 | 113 | 30.6 / 19.8 / 14.0 |
+| 2 | 384-704 | 21 | 63.3 / 45.1 / 35.9 |
+| all | | 211 | 98.5 / 67.6 / 51.7 |
+The largest single run is tied-8k at w704 (~9 GPU-h central: 8k needs the most tokens for the same bytes).
+On H100 the times are ~2.5x shorter. With the current 8 GPU-h weekly cap, phases 0 and 1a fit in one week and
+phase 1b takes about three; phase 2 needs a larger allocation (e.g. Marlowe) or about six weeks of the cap.
+
+## Sherlock job-array plan
+- Everything under $SCRATCH/dm4 with its own venv (module python/3.12.1; wheel-only: torch 2.6.0+cu124, numpy
+  2.2.6, tokenizers, pyarrow; built in an `srun -p dev` step, never a shared venv).
+- Prep (CPU; an `srun -p dev` step inside submit_dm4.sh, as Exp 18 r2): fetch the shard list and check sha256, train
+  the two BPEs, pretokenize train and validation per tokenizer into uint16 memmaps (all three vocabs < 65,536), write
+  bytes-per-token. ~15 GB text, ~20 GB tokens.
+- Phase 0 probe: one `srun -p dev -G 1` step, 200 steps per (body, vocab), writes tokens/s; design.py re-run with it.
+- Training: one array per phase, `sbatch -p gpu -G 1 --array=<ids>%4 train_dm4.sbatch`, where a task's index is
+  a const run's array_index in runs.csv; the task runs the const run and then, in the same allocation, its cooldown
+  branches (from checkpoints saved at 0.8 D_k), so no cross-job dependency. Small bodies pack the three seeds of
+  one arm into one task. --time = 1.5x the measured estimate (48 h max), checkpoints every 30 min with --requeue.
+  %4 caps concurrent GPUs at four.
+- Post: an afterany CPU job gathers eval JSONs (y at each D/N, bytes and tokens seen, GPU-seconds) into
+  $SCRATCH/dm4/dm4_phase<k>_results.tgz, fetched with ?download=1; analysis runs locally (dm4.py, written before
+  phase-1a results are opened, plus verify.py DM-4 checks).
+- submit_dm4.sh takes --phase and --approved-gpuh and refuses to submit when the phase's estimate is above the
+  approved number. Slurm mail END,FAIL to both of Brando's addresses (his Sherlock default).
+
+## verify.py additions (DM-4, before results are opened; 1-2 are in dm4_embedding_ladder/verify_design.py)
+1. runs.csv regenerates byte-identical from design.py; N_nonemb and tied N_total match DM-2's porian_counts.
+2. The power check (power.py, below) meets: under the 1-term laws, median c within 0.05 of truth and profile-set
+   coverage >= 80%; second-term false-fire rate <= 10%; under DM-3's 2-term law it fires in >= 80% on the full
+   design.
+3. At analysis: every run reached its byte target; no NaN; G1/G2 recomputed; RSS2 <= RSS1 at every c; 1,000
+   bootstrap refits; results manifest hashes match.
+
+## Limitations, known now
+Only RefinedWeb (no owt2); hyperparameters tuned for tied-50k only (the LR check tests the worst case); vocab also
+changes context in bytes and tokenizer quality, which only E_g absorbs; seed counts at phase 2 are 1, so P3 rests on
+the small bodies' seed means.
+
+## Power check (power.py, run before this addendum was committed; CPU only, no training)
+200 simulated datasets per cell on the DM-4 design (constant-LR seed means at D/N = 20; Porian seed sd per width,
+the larger of rw/owt2, divided by sqrt(seeds)); planted laws are DM-3's rw fits; fitted with M1/M2 above on a
+0.05 c grid (the analysis uses 0.01 + refinement). verify_design.py: ALL PASS.
+| design (points) | planted law | median c (M1) | M1 95% set covers c | second term fires | median dBIC |
+|---|---|---|---|---|---|
+| phase 1 (30) | 1-term, c = 0.1 | 0.10 | 1.00 | 0.00 | -6.8 |
+| phase 1 (30) | 1-term, c = 0.5 | 0.50 | 0.96 | 0.045 | -6.6 |
+| phase 1 (30) | 1-term, c = 1.0 | 1.00 | 0.92 | 0.01 | -6.4 |
+| phase 1 (30) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 59 |
+| phase 1+2+Porian (48) | 1-term, c = 0.1 | 0.10 | 1.00 | 0.045 | -7.7 |
+| phase 1+2+Porian (48) | 1-term, c = 0.5 | 0.50 | 0.96 | 0.065 | -6.6 |
+| phase 1+2+Porian (48) | 1-term, c = 1.0 | 1.00 | 0.92 | 0.00 | -5.8 |
+| phase 1+2+Porian (48) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 178 |
+So the design pins c to about +-0.05 (DM-3's split [0.05, 0.11] U [1.55, 2.0+] collapses to one point-like set),
+keeps the second-term test's false-fire rate <= 6.5% and detects DM-3's 2-term law every time. Under the 2-term law
+M2's set covers the true c = 1.066 in only 27-48% because it lies between grid points and the set is one grid point
+wide: a grid artefact the 0.01 analysis grid removes. These numbers assume the law form is right, the same law in
+every tokenizer group up to E_g, and Gaussian seed noise; a tokenizer effect that changes with size is not modelled.
