@@ -8,6 +8,7 @@ Wald z for B, dBIC, the conditioning of the 2-term fit and the extrapolation err
 """
 import argparse
 import csv
+import glob
 import itertools
 import os
 import time
@@ -172,14 +173,23 @@ def main():
     ap.add_argument("--workers", type=int, default=os.cpu_count())
     ap.add_argument("--reps-scale", type=float, default=1.0, help="multiply replicate counts (smoke tests)")
     args = ap.parse_args()
+    done = set()
+    for p in glob.glob(os.path.join(args.out, "raw_shard*.csv")):  # resume: skip replicates already written
+        with open(p) as fh:
+            done |= {(int(r["cell"]), int(r["rep"])) for r in csv.DictReader(fh)}
     jobs = []
     for c in cells():
-        reps = list(range(max(1, int(c["reps"] * args.reps_scale))))
+        reps = [r for r in range(max(1, int(c["reps"] * args.reps_scale))) if (c["cell"], r) not in done]
         for i in range(0, len(reps), 25):
             jobs.append((c, reps[i:i + 25]))
     jobs = jobs[args.shard::args.nshards]
+    print(f"{len(done)} replicates already done, {sum(len(j[1]) for j in jobs)} to run", flush=True)
     os.makedirs(args.out, exist_ok=True)
     path = os.path.join(args.out, f"raw_shard{args.shard:03d}_of{args.nshards:03d}.csv")
+    k = 0
+    while os.path.exists(path):  # never overwrite a partial run
+        k += 1
+        path = os.path.join(args.out, f"raw_shard{args.shard:03d}_of{args.nshards:03d}_part{k}.csv")
     t0 = time.time()
     with open(path, "w", newline="") as f, Pool(args.workers) as pool:
         w = csv.DictWriter(f, fieldnames=FIELDS)
