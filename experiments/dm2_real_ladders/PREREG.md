@@ -96,4 +96,15 @@ from data/dm1_cells_partial.csv.
 5. results/ hashes listed in results/manifest.txt match the files.
 
 ## Changes after the first fit
-(none yet)
+1. **Wald SE inversion (bug fix, applies to DM-1 too).** fit2's SE inverts the unscaled J^T J with pinv; on real
+   ladders every n >> 1, so for large beta the n^-beta column is ~1e-6 and pinv's cutoff drops it: SE(B) -> 0 and z
+   reached 1e8 on null fits. z is recomputed with unit-norm columns (fitlib._scaled_se, same formula). tableA keeps
+   fit2's own z as z_wald_dm1code. On DM-1's 16,064 testable replicates this flips 69 detections; conclusions hold.
+2. **Positive control** is run on 50 synthetic replicates (detection rate >= 0.9, median beta within 20%) instead of
+   one draw, so one noise draw cannot pass or fail it.
+3. **Porian name check:** the checkpoint names are floor(N / 1M), not rounded, so verify.py checks exact equality of
+   floor(N_total / 1M) with the name (stronger than "within 3%").
+4. **Post hoc, labelled as such:** the Chinchilla-form joint law misfits Porian's base-hparam `chinchilla` runs
+   (residual sd ~0.21 nats), so analysis B could not test the one curve family with an N-only signal (tuned, constant
+   LR). Added a joint fit on the tuned constant-LR validation curves read at D/N = 2.5..320 (tableB_explore.csv).
+   Points from one run are correlated, so its SEs are optimistic.

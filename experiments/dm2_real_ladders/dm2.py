@@ -182,7 +182,7 @@ def job_B(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--workers", type=int, default=2)
-    ap.add_argument("--only", choices=["A", "B", "AB"], default="AB")
+    ap.add_argument("--only", choices=["A", "B", "AB", "explore"], default="AB")
     args = ap.parse_args()
     cur = pd.read_csv(os.path.join(RES, "curves.csv"))
     joint = pd.read_csv(os.path.join(RES, "joint_points.csv"))
@@ -196,6 +196,17 @@ def main():
         for j, count in enumerate(COUNTS[fam]):
             jobsB.append((ladder, count, g, [20261020, k, j]))
     t0 = time.time()
+    if args.only == "explore":  # post hoc joint fits on the tuned constant-LR curves (PREREG changes)
+        ex = pd.read_csv(os.path.join(RES, "joint_points_explore.csv"))
+        jobs = [(lad, count, g, [20261021, k, j]) for k, (lad, g) in enumerate(ex.groupby("ladder"))
+                for j, count in enumerate(COUNTS["porian"])]
+        with Pool(args.workers) as pool:
+            out = pool.map(job_B, jobs, chunksize=1)
+        pd.DataFrame([o[0] for o in out]).to_csv(os.path.join(RES, "tableB_explore.csv"), index=False)
+        pd.DataFrame([r for o in out for r in o[1]]).to_csv(os.path.join(RES, "reverse_residuals_explore.csv"),
+                                                            index=False)
+        print(f"explore done: {len(out)} fits, {time.time() - t0:.0f}s")
+        return
     with Pool(args.workers) as pool:
         if "A" in args.only:
             out = pool.map(job_A, jobsA, chunksize=1)

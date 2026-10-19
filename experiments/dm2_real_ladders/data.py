@@ -169,6 +169,25 @@ def build():
     return pd.DataFrame(cur), pd.DataFrame(joint), P, pts
 
 
+EXPLORE_TPP = [2.5, 5, 10, 20, 40, 80, 160, 320]
+
+
+def explore_points(P):
+    """Post hoc (see PREREG changes): joint points read off the constant-LR validation curves of Porian's tuned runs,
+    at tokens/param in EXPLORE_TPP where the run reaches them. Constant LR: unannealed but the same state at every D.
+    Points from one run are correlated, so Wald and bootstrap SEs are optimistic."""
+    out = []
+    for ds in ("rw", "owt2"):
+        sub = P[(P.dataset == ds) & (P.hparams == "tuned") & (P.warmup == "short") & (P.decay == "const")]
+        for _, r in sub.iterrows():
+            for k in EXPLORE_TPP:
+                v = porian_curve_value(r, ratio=k)
+                if np.isfinite(v):
+                    out.append(dict(ladder=f"porian/{ds}/tuned-short-const-curve", N_total=r.N_total,
+                                    N_nonemb=r.N_nonemb, N_reported=np.nan, D=k * r.N_total, L=v))
+    return pd.DataFrame(out)
+
+
 def seed_sigma(P):
     s = P[P.hparams == "seed"]
     out = s.groupby(["dataset", "width"]).agg(N_total=("N_total", "first"), seeds=("seed", "nunique"),
@@ -183,6 +202,7 @@ if __name__ == "__main__":
     cur, joint, P, pts = build()
     cur.to_csv(os.path.join(HERE, "results", "curves.csv"), index=False)
     joint.to_csv(os.path.join(HERE, "results", "joint_points.csv"), index=False)
+    explore_points(P).to_csv(os.path.join(HERE, "results", "joint_points_explore.csv"), index=False)
     seed_sigma(P).to_csv(os.path.join(HERE, "results", "seed_sigma.csv"), index=False)
     print(cur.groupby(["curve", "slice"]).agg(sizes=("y", "count"), planned=("y", "size"),
                                               Nmin=("N_total", "min"), Nmax=("N_total", "max")).to_string())

@@ -1,0 +1,10 @@
+PASS  positive control (s=1, beta=1): detected 1.00 of 50, median beta 0.932
+PASS  negative control (s=0): false detections 0.00 of 50
+PASS  Porian N_total vs names: 16 of 16 sizes: floor(N_total / 1M) equals the checkpoint name exactly (the repo's width x depth is ~2e4 x too small)
+PASS  analysis A complete: 48 rows of 48; every row uses all sizes with a value (drops = no value at D=20N)
+PASS  A bootstraps: 48 testable rows, nboot [np.int64(1000)]
+PASS  analysis B complete: 8 joint fits, nboot [np.int64(1000)]
+PASS  post hoc joint fits: 4 fits
+PASS  RSS_2 <= RSS_1: 0 violations
+PASS  manifest: 11 files hashed
+ALL PASS
