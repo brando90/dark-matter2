@@ -10,6 +10,8 @@ from collections import defaultdict
 
 import numpy as np
 
+import dm1
+
 KEY = ("nmin", "nmax", "ppd", "sigma", "s", "beta")
 
 
@@ -19,6 +21,41 @@ def load(results):
         with open(p) as f:
             rows += list(csv.DictReader(f))
     return rows
+
+
+def rescore(rows):
+    """Recompute the Wald z of every testable replicate from its stored 2-term fit with the stable (unit-norm column)
+    inversion, and the decisions that depend on it. The first run's z used the unscaled pinv (see dm1.wald). Returns
+    (rows that matched the first-run formula exactly, primary decisions that flipped)."""
+    same = flips = 0
+    for r in rows:
+        if r["testable"] != "1":
+            continue
+        n = dm1.ladder(float(r["nmin"]), float(r["nmax"]), float(r["ppd"])) / dm1.N_REF
+        p = [float(r[k]) for k in ("E2", "a2", "alpha2", "b2", "beta2", "rss2")]
+        z_old, _ = dm1.wald(n, *p, scaled=False)
+        same += abs(z_old - float(r["z_wald"])) <= 1e-6 * max(1.0, abs(z_old))
+        z, _ = dm1.wald(n, *p)
+        dw = int(z > 2)
+        prim = dw * int(r["detect_bic"])
+        flips += prim != int(r["detect_primary"])
+        npred = dm1.PRED_FACTOR * float(r["nmax"]) / dm1.N_REF
+        p2 = dm1.law(npred, *p[:5])
+        p1 = dm1.law(npred, float(r["E1"]), float(r["a1"]), float(r["alpha1"]))
+        r.update(z_wald=z, detect_wald=dw, detect_primary=prim,
+                 errsel_pred=(p2 if prim else p1) - float(r["L_true_pred"]))
+    return same, flips
+
+
+def dedupe(rows):
+    """One row per (cell, rep), the first file's copy kept (shards from different machines can overlap)."""
+    seen, out = set(), []
+    for r in rows:
+        k = (r["cell"], r["rep"])
+        if k not in seen:
+            seen.add(k)
+            out.append(r)
+    return out
 
 
 def f(x):
@@ -56,7 +93,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--results", default="results")
     args = ap.parse_args()
-    cells = aggregate(load(args.results))
+    raw = load(args.results)
+    rows = dedupe(raw)
+    ntest = sum(r["testable"] == "1" for r in rows)
+    same, flips = rescore(rows)
+    print(f"{len(raw)} raw rows, {len(rows)} unique (cell, rep); Wald z recomputed with the stable inversion: "
+          f"first-run z reproduced on {same}/{ntest} testable rows, {flips} primary decisions flipped")
+    cells = aggregate(rows)
     path = os.path.join(args.results, "cells.csv")
     with open(path, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(cells[0].keys()))

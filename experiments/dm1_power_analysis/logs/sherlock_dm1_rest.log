@@ -1,0 +1,22 @@
+srun: job 48509059 queued and waiting for resources
+srun: job 48509059 has been allocated resources
+0 replicates already done, 21600 to run
+1/864 jobs, 0s
+51/864 jobs, 4s
+101/864 jobs, 7s
+151/864 jobs, 10s
+201/864 jobs, 14s
+251/864 jobs, 18s
+301/864 jobs, 22s
+351/864 jobs, 27s
+401/864 jobs, 32s
+451/864 jobs, 36s
+501/864 jobs, 40s
+551/864 jobs, 43s
+601/864 jobs, 47s
+651/864 jobs, 51s
+701/864 jobs, 55s
+751/864 jobs, 61s
+801/864 jobs, 66s
+851/864 jobs, 72s
+wrote results_sherlock/raw_shard000_of001.csv in 73s

@@ -42,4 +42,12 @@ small models. (The journal used both beta < alpha and beta > alpha; this fixes b
    i.e. a Pythia-scale ladder cannot see a term that is 10% of the main term at 1M parameters; small models are needed.
 
 ## Changes after the first run
-(none yet)
+1. Wald SE inversion (Oct 19, found in DM-2 before the final analysis). The first run inverted the unscaled J^T J with
+   pinv; when every n >> 1 and beta is large, the n^-beta column is ~1e-6 and pinv's cutoff dropped it, so SE(B)
+   collapsed and z exploded. The formula is unchanged (sigma_hat^2 (J^T J)^-1); it is now inverted with unit-norm
+   columns (dm1.wald). analyze.py recomputes z and the decisions that depend on it from each replicate's stored fit;
+   117 of 36,000 testable primary decisions flipped. The raw CSVs keep the first-run z.
+2. Where it ran. Cells 0-161 and part of 162 ran locally (results/raw_shard000_of001.csv); the box got busy, so cells
+   162-323 ran on Sherlock's dev partition (job 48509059, results/raw_shard001_sherlock.csv). Replicates are seeded by
+   (cell, rep); the 1,664 replicates in both files agree on every decision (floats to ~1e-12), and the local copy is
+   kept.

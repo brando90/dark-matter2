@@ -117,16 +117,28 @@ def fit2(n, y, f1, rng=None):
         if np.isfinite(s[0]) and s[0] < best["rss"]:
             best = dict(E=c[0, 0], a=c[0, 1], alpha=float(p[0]), b=c[0, 2], beta=float(p[0] + p[1]), rss=float(s[0]))
     E, a, al, b, beta, rss2 = (best[k] for k in ("E", "a", "alpha", "b", "beta", "rss"))
-    # Wald test for B in natural parameters (E, a, alpha, b, beta)
+    z, cond = wald(n, E, a, al, b, beta, rss2)
+    return dict(E=E, a=a, alpha=al, b=b, beta=beta, rss=rss2, z=z, cond=cond)
+
+
+def wald(n, E, a, al, b, beta, rss2, scaled=True):
+    """Wald z for B in natural parameters (E, a, alpha, b, beta), SE from sigma^2 (J^T J)^-1, and the condition number
+    of J^T J with unit-norm columns. scaled=True inverts with unit-norm columns: the first run inverted the unscaled
+    J^T J with pinv, whose cutoff drops the ~1e-6 n^-beta column when every n >> 1 and beta is large, so SE(B)
+    collapsed and z exploded (found in DM-2, Oct 19). scaled=False reproduces the first run."""
+    ln = np.log(n)
     J = np.column_stack([np.ones_like(n), n ** -al, -a * n ** -al * ln, n ** -beta, -b * n ** -beta * ln])
     dof = len(n) - 5
-    cov = max(rss2, 1e-300) / dof * np.linalg.pinv(J.T @ J)
+    norms = np.linalg.norm(J, axis=0)
+    norms = np.where(norms > 0, norms, 1.0)
+    M = (J / norms).T @ (J / norms)
+    if scaled:
+        cov = max(rss2, 1e-300) / dof * np.linalg.pinv(M, rcond=1e-13) / np.outer(norms, norms)
+    else:
+        cov = max(rss2, 1e-300) / dof * np.linalg.pinv(J.T @ J)
     se_b = np.sqrt(cov[3, 3]) if cov[3, 3] > 0 else np.nan
     z = b / se_b if b > 0 and np.isfinite(se_b) and se_b > 0 else 0.0
-    norms = np.linalg.norm(J, axis=0)
-    Js = J / np.where(norms > 0, norms, 1.0)
-    cond = np.linalg.cond(Js.T @ Js)
-    return dict(E=E, a=a, alpha=al, b=b, beta=beta, rss=rss2, z=z, cond=cond)
+    return z, np.linalg.cond(M)
 
 
 def bic(rss, npts, k):

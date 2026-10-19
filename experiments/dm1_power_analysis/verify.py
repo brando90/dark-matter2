@@ -32,6 +32,20 @@ def main():
     with open(os.path.join(args.results, "cells.csv")) as fh:
         cells = [{k: float(v) if v not in ("", "nan") else np.nan for k, v in r.items()} for r in csv.DictReader(fh)]
 
+    # 0. shards from different machines may overlap: overlapping copies must agree, then keep the first
+    first, dup, disagree = {}, 0, 0
+    for r in raw:
+        k = (int(r["cell"]), int(r["rep"]))
+        if k in first:
+            dup += 1
+            q = first[k]
+            disagree += any(q[c] != r[c] for c in ("testable", "detect_wald", "detect_bic", "detect_primary")) or \
+                abs(float(q["err1_pred"]) - float(r["err1_pred"])) > 1e-6
+        else:
+            first[k] = r
+    check("shard overlap agrees", disagree == 0, f"{dup} overlapping replicates, {disagree} disagree")
+    raw = list(first.values())
+
     # 1. completeness: every planned (cell, rep) exactly once
     planned = {(c["cell"], r) for c in dm1.cells() for r in range(c["reps"])}
     got = [(int(r["cell"]), int(r["rep"])) for r in raw]
