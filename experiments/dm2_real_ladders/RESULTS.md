@@ -7,6 +7,8 @@ every smaller model, by +0.35 to +0.37 nats at 5M. But it is **not yet dark matt
 separate it from the data term misfits these runs. No other ladder (Chinchilla 43 sizes, LLaMA 21, Porian base
 hparams) shows a second term, and DM-1's power table says those nulls mean "not detectable here", not "absent".
 
+Sizes at D = 20N: Porian 14 of 16 (the 611M and 901M runs end before 20 tokens/param), Chinchilla 28 of 43 (Hoffmann's 10 smallest sizes, 57M-251M, were all trained past 20 tokens/param and the 5 largest, 2.3B-16B, all short of it, so no pair of runs brackets 20N), LLaMA 15 of 21 (the 6 runs from 0.9B up end before 20N).
+
 Full tables: results/summary.md. Code: data.py (ladders), fitlib.py (DM-1 fits + joint fit), dm2.py (fits,
 1,000-refit bootstraps), verify.py (ALL PASS), PREREG.md (written before the first fit, with the changes after).
 
