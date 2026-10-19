@@ -94,3 +94,17 @@ BIC alone on the same replicates; LRT power on the full grid; median 100x-extrap
 2. The LRT's power is close to BIC alone's (both use RSS_1 / RSS_2) and well above the primary rule's, so the min
    detectable s drops by >= 3x vs the primary rule in at least two of the four windows.
 3. [1e7, 1e9] still cannot see s <= 0.1 (power < 0.5): the limit there is the data, not the test.
+
+## DM-1b: changes before the main run
+1. Fitter (Oct 19, after smoke and timing runs on 1% of the replicates, 432 of 43,200; no test setting changed).
+   The first version (grid, then a shrinking local grid) missed DM-1's 2-term optimum by > 1% RSS on 6.7% of
+   replicates: the RSS surface has narrow curved valleys and optima on the bounds (delta at 4, the fast term fitting
+   only the smallest models; alpha near 0 with E = 0). The fitter now runs a compass search from five starts (the best
+   grid point in each of three delta bands, plus those two boundary points) and polishes each end point with
+   projected Levenberg-Marquardt in all five parameters, keeping the best; on the same 360 testable replicates it is
+   > 1% worse than DM-1 on 0.3% and > 0.1% better on 4.4%. The observed data and every bootstrap sample still go
+   through the same fitter.
+2. Exact shortcuts that leave every decision unchanged: a replicate with T = 0 has p = 1 (every T* >= 0), so it is
+   not refit; and after the first 50 bootstrap samples a replicate with >= 10 exceedances can no longer reach
+   k <= 9 of 200, so it stops there (its p is then reported from the samples used, column b_used). Bootstrap sample b
+   is the same draw whichever stage uses it.
