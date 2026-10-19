@@ -54,8 +54,8 @@ the two-decade windows) stay untestable, as in DM-1.
 
 ## Predictions
 1. **Held.** LRT null rate 0.020-0.070 in every testable cell (BIC alone up to 0.117).
-2. **Held.** LRT power tracks BIC alone (equal or higher everywhere in the readout; 0.45 vs 0.32 at [1e6,1e9],
-   beta 0.68, s 0.1) and the min detectable s drops >= 3x vs the primary rule in three of four windows
+2. **Held.** LRT power tracks BIC alone (same min s in every readout row; power within -0.07 to +0.13 of BIC's at
+   s 0.03-1, higher where the ladder is coarse, e.g. 0.45 vs 0.32 at [1e6,1e9], beta 0.68, s 0.1) and the min detectable s drops >= 3x vs the primary rule in three of four windows
    ([1e5,1e7], [1e6,1e9], [1e5,1e9]).
 3. **Held.** [1e7, 1e9], 4/dec, sd 0.01: LRT power at s <= 0.1 is 0.02-0.08.
 
