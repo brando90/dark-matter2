@@ -8,7 +8,7 @@ A second power-law term is only visible when the ladder reaches small models. Wi
 (1e7-1e9 params) no test sees a term up to the size of the main term at 1M params, and the 1-term fit then
 extrapolates 100x out with only ~0.02 nats of error, so the second term barely matters for prediction up there. Down at
 1e5 params it is easy to see. The primary rule's Wald arm, not the data, limits detection: BIC alone finds terms
-3-10x weaker at a similar false-positive rate.
+3-10x weaker, at a false-positive rate near the bar (pooled 0.04, worst cell 0.12).
 
 ## Pre-registered checks
 | check | result |
