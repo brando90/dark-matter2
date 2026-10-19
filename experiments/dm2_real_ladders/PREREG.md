@@ -108,3 +108,86 @@ from data/dm1_cells_partial.csv.
    (residual sd ~0.21 nats), so analysis B could not test the one curve family with an N-only signal (tuned, constant
    LR). Added a joint fit on the tuned constant-LR validation curves read at D/N = 2.5..320 (tableB_explore.csv).
    Points from one run are correlated, so its SEs are optimistic.
+
+---
+
+# DM-3 addendum: embedding accounting vs a real second term (tuned Porian curves)
+
+Written 2026-10-19 before any DM-3 fit. Known from DM-2 (so this is not blind): on Porian tuned-short-const rw and
+owt2 at D = 20N the second term is significant with N = N_total (c = 1) and absent with N = N_nonemb (c = 0); the
+Chinchilla-form joint law misfits the tuned constant-LR curves (residual sd 0.08-0.09).
+
+## Question
+Is the fast term on these two curves a real second power law, or is it what you get from counting an embedding
+parameter as a full body parameter? Model the count as N_c = N_nonemb + c * N_emb (N_emb = 50,432 w, tied) and let
+the data choose c.
+
+## Data (unchanged from DM-2)
+- A3, N-only: the DM-2 D = 20N values of porian/{rw,owt2}/tuned-short-const (14 sizes each, 5M-455M by N_total).
+  y is held fixed; only the x-axis count changes with c (D stays 20 N_total).
+- B3, joint: results/joint_points_explore.csv (the same runs' constant-LR validation curves at D/N_total = 2.5-320;
+  rw 93 points, owt2 89, 16 sizes). Points from one run are correlated: SEs there are optimistic.
+
+## A3: profile c
+- Grid c in {0, 0.005, ..., 2.0} (401 values). At each c: DM-1's fit1 and fit2 (fitlib, unchanged) on n = N_c / 1e6.
+  RSS1(c), RSS2(c), B(c), Wald z(c) (stable inversion).
+- c1 = argmin RSS1 (1-term law + free c, k = 4); c2 = argmin RSS2 (2-term law + free c, k = 6). Each refined with a
+  bounded scalar search around the grid minimum.
+- 95% CI for c: profile likelihood, {c : n ln(RSS(c) / RSS_min) <= 3.84}, for both models; plus a residual bootstrap
+  CI of c1 (1,000 refits of the 1-term-with-c model, percentile 2.5-97.5).
+- Second-term test with c free (the decisive A3 test): dBIC = BIC(1-term, c1; k = 4) - BIC(2-term, c2; k = 6);
+  Wald z of B at c2 (natural parameters, c held at c2, so slightly optimistic); bootstrap z = B(c2) / sd(B*), 1,000
+  residual-bootstrap refits from the 2-term-at-c2 curve, with c re-profiled in every refit (grid of 21 values over
+  [0, 2] + bounded refinement). Primary rule as DM-2: z > 2 AND dBIC > 2, and "shows a second term" also needs
+  boot z > 2.
+- Also reported: the A3 table at c = 0, c = 1 (DM-2's two counts, as a check they reproduce DM-2) and at c1.
+- Hold-out (sizes sorted by N_total, fit the smaller 10 of 14, predict the largest 4): 1-term vs 2-term RMSE with c
+  fixed at the full-data c1 (the count is a property of the architecture; labelled "c from all data"), and strictly
+  out of sample with c re-profiled on the 10 training sizes.
+- Reverse ladder (the 5 sizes with N_total >= 100M; 108M-455M): 1-term law with c = c1 fitted on them, residuals
+  (observed - predicted) of the 9 smaller sizes. A 2-term law cannot be fitted on 5 points, so for the 2-term model
+  the per-size residuals of its full fit at c2 are reported next to them. Strict version: c also profiled on the 5
+  large sizes (weakly identified there; reported, not used for the verdict).
+
+## B3: Kaplan-style joint law
+Kaplan et al. (2020) eq. 1.5 with an irreducible term and an optional second N term:
+  L = E + (A n^-p + G / d)^q [+ B n^-beta],  n = N_c / 1e6, d = D / 1e9, p = alpha_N / alpha_D, q = alpha_D,
+  beta > p q (faster than the main N term).
+- K0: E = 0 (Kaplan as published), K1: E >= 0 free, K2: K1 + B n^-beta. All coefficients >= 0. Nonlinear least
+  squares (scipy least_squares on log-parametrised positives, 40 starts, best RSS kept; K2 also starts from the K1
+  optimum with B ~ 0 so RSS_K2 <= RSS_K1).
+- c profiled on a grid {0, 0.05, ..., 1.5} for K1 and K2 (refined around the minimum); 95% profile CI as above.
+- Compared on residual sd against the DM-2 Chinchilla-form joint fit on the same points (0.08 rw / 0.08 owt2 with
+  N_total) and refitted at the K1 best c.
+- Second-term test in B3: Wald z of B (c held at the K2 best c), dBIC (K1 vs K2 at their own best c; k = 6 vs 8 with
+  c counted), bootstrap z (1,000 residual-bootstrap refits, c fixed at the K2 best c, 8 starts per refit: cheaper,
+  and labelled conditional on c).
+- Hold-out by size (fit the smaller 11 of 16 sizes, all their D; predict the 5 largest) and reverse ladder (fit on
+  N_total >= 100M, 7 sizes; mean residual per smaller size), both for K1 and K2 at their full-data best c.
+
+## Decision rule for the verdict (fixed now)
+- **Embedding accounting**, if on both datasets: (i) A3 with c free fails the primary rule or boot z <= 2, (ii) the
+  95% profile CI of c1 excludes 1, and (iii) the A3 reverse-ladder mean residual at c1 is within +-0.05 nats
+  (DM-2 at c = 1: +0.10). B3 must not contradict it (K2's B not significant at its best c, or K2's best c CI
+  excludes 1).
+- **Dark matter (survives the count)**, if on both datasets A3 with c free passes the primary rule with boot z > 2
+  and the B3 K2 test agrees (B significant, z > 2 and dBIC > 2).
+- Anything else: **undetermined**, with the reason (e.g. c not identified, the datasets disagree, A3 and B3 disagree).
+
+## Predictions, written now
+1. c1 is well below 1 on both datasets (point estimate < 0.5) and its CI excludes 1.
+2. With c free the second term fails the primary rule on both datasets (embedding accounting).
+3. The A3 reverse-ladder mean at c1 is within +-0.05 nats.
+4. The Kaplan form with E (K1) fits the constant-LR curves better than the Chinchilla form (lower residual sd).
+5. K2's second term is not significant at its best c.
+
+## verify.py additions (DM-3)
+1. c recovery: 50 synthetic curves on the Porian sizes, y = 1-term law in N_c with c = 0.3 (E 1.8, alpha 0.3,
+   A from the rw c = 0.3 fit if available, else 15), sigma 0.005: median c1 within 0.1 of 0.3 and the profile CI
+   covers 0.3 in >= 80%.
+2. Null control with c free: on those same curves the c-free second-term test fires in <= 10%.
+3. Kaplan fitter: a noiseless synthetic K1 surface on the B3 design (c = 0.5) is recovered: p, q within 5%, RSS < 1e-8.
+4. The A3 profile at c = 0 and c = 1 reproduces DM-2's tableA (alpha1 and rss1 within 1e-6 relative) for both
+   datasets.
+5. Every bootstrap has 1,000 refits; RSS_2 <= RSS_1 (A3 at every c on the grid, B3 K2 vs K1 at the same c);
+   manifest hashes match.
