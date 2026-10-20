@@ -120,9 +120,19 @@ def main():
     if meas.exists():                                  # measured: tokens / (tokens/s) + one full eval per eval point
         pr = pd.read_csv(meas).set_index(["width", "vocab"])
         n_eval = runs.run.map(lambda k: len(EVAL_TPP) if k in ("const", "lr x0.5", "lr x2") else 1)
-        tps = [pr.loc[(w, V), "tokens_per_sec"] for w, V in zip(runs.width, runs.vocab)]
-        ev = [pr.loc[(w, V), "eval_sec_full"] for w, V in zip(runs.width, runs.vocab)]
+
+        def probe(w, V, col):
+            # a body the probe has not reached yet: the widest measured body at this vocab, scaled by FLOPs per token
+            if (w, V) in pr.index:
+                return pr.loc[(w, V), col], False
+            wm = max(x for x, v in pr.index if v == V and x < w)
+            ratio = flops_per_token(w, hp[w]["depth"], V) / flops_per_token(wm, hp[wm]["depth"], V)
+            return (pr.loc[(wm, V), col] / ratio if col == "tokens_per_sec" else pr.loc[(wm, V), col] * ratio), True
+
+        tps = [probe(w, V, "tokens_per_sec")[0] for w, V in zip(runs.width, runs.vocab)]
+        ev = [probe(w, V, "eval_sec_full")[0] for w, V in zip(runs.width, runs.vocab)]
         runs["gpuh_measured"] = (runs.tokens / tps + n_eval * ev) / 3600
+        runs["gpuh_extrapolated"] = [probe(w, V, "tokens_per_sec")[1] for w, V in zip(runs.width, runs.vocab)]
         runs.to_csv(HERE / "runs.csv", index=False)
     g = runs.groupby(["phase", "width"]).agg(N_nonemb=("N_nonemb", "first"), runs=("run", "size"),
                                               tokens_B=("tokens", lambda x: x.sum() / 1e9),
@@ -147,6 +157,10 @@ def main():
                   f"phase 2 {runs[runs.phase == 2].gpuh_measured.sum():.1f}; largest single run "
                   f"{runs.gpuh_measured.max():.2f} GPU-h "
                   f"({runs.loc[runs.gpuh_measured.idxmax(), ['width', 'vocab', 'tie', 'run']].to_dict()})"]
+        if runs.gpuh_extrapolated.any():
+            lines += [f"Not yet probed, scaled from the widest probed body by FLOPs per token: widths "
+                      f"{sorted(runs[runs.gpuh_extrapolated].width.unique().tolist())} "
+                      f"({runs[runs.gpuh_extrapolated].gpuh_measured.sum():.1f} GPU-h of the total)"]
     (HERE / "budget.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
