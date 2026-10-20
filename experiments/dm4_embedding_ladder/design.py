@@ -4,8 +4,15 @@ size at fixed body size (vocab 8,192 / 32,768 / 50,432, tied vs untied). Design 
     python design.py            # writes runs.csv, budget.csv, budget.md next to this file
 
 Shapes and tuned hyperparameters are Porian et al.'s (tuned, short warmup, constant LR; read from
-data/data_resolving_discrepancies). Assumptions that phase 0 replaces with measurements are marked ASSUME.
+data/data_resolving_discrepancies). Assumptions that phase 0 replaces with measurements are marked ASSUME; when
+phase 0's measurements exist (data_phase0/bpt.json: bytes per token; data_phase0/probe.csv: tokens/s and eval time
+per body x vocab on one GPU), runs.csv uses the measured bytes per token and budget.md adds measured GPU-hours.
+
+Amendment 1 (phase 0, before any DM-4 training run): Porian's checkpoints are UNTIED (see PREREG), so the anchor
+arm is untied-50k (NeoX), phase 2 runs untied-50k (Porian's config; its w480 run is G2) and tied-8k, and the LR
+check uses tied-8k and tied-50k. N_ref = N_nonemb + 50,432 w (Porian's N: body + head) sets every body's data.
 """
+import json
 import math
 from pathlib import Path
 
@@ -19,13 +26,18 @@ SMALL = WIDTHS[:5]                                              # 3 seeds here
 VOCABS = [8192, 32768, 50432]
 TIES = ["tied", "untied"]
 SEEDS_SMALL, SEEDS_LARGE = [0, 1, 2], [0]
-REF_V, TPP = 50432, 20            # data per body: 20 x N_total(50,432 tied) reference tokens
+REF_V, TPP = 50432, 20            # data per body: 20 x N_ref = 20 x (N_nonemb + 50,432 w) reference tokens
 EVAL_TPP = [2.5, 5, 10, 20]       # read off the constant-LR run (no extra cost)
 COOL_TPP = [5, 10, 20]            # WSD cooldown branches: from the const-LR checkpoint at 0.8 D, linear to 0 over 0.2 D
 COOL_FRAC = 0.2
 CTX = 2048
 # ASSUME: UTF-8 bytes per token on RefinedWeb for byte-level BPE trained on the same slice (measured in phase 0)
 BPT = {8192: 3.4, 32768: 4.15, 50432: 4.35}
+P0 = HERE / "data_phase0"
+if (P0 / "bpt.json").exists():                     # measured on the first training shard (as train.py)
+    _m = json.loads((P0 / "bpt.json").read_text())
+    BPT = {8192: _m["bpe8k"]["train_first"]["bytes_per_token"], 32768: _m["bpe32k"]["train_first"]["bytes_per_token"],
+           50432: _m["neox"]["train_first"]["bytes_per_token"]}
 # ASSUME: L40S dense bf16 peak and model-FLOP utilisation by width (pessimistic, central, optimistic)
 PEAK = 362e12
 def mfu(w):
@@ -55,7 +67,7 @@ def flops_per_token(w, depth, V):
 
 def arms_for(w):
     """(vocab, tie, tokenizer, seeds, extra runs) per body. 50,432 is the GPT-NeoX tokenizer Porian used, so the
-    tied-50k arm is Porian's own configuration (re-run at the small end; above it Porian's runs are the data).
+    untied-50k arm is Porian's own configuration (re-run at every body; Porian's runs above w320 add to it).
     8,192 and 32,768 are byte-level BPE trained on a RefinedWeb slice outside the training/validation shards."""
     cool_all = [f"cool@{k}" for k in COOL_TPP]
     if w in SMALL:
@@ -63,13 +75,11 @@ def arms_for(w):
         if w in (128, 224):
             a.append((REF_V, "tied", "own-bpe", [0], []))                   # tokenizer-family control
         return a
-    a = [(REF_V, "untied", "neox", SEEDS_LARGE, ["cool@20"]), (8192, "tied", "own-bpe", SEEDS_LARGE, ["cool@20"])]
-    if w == 480:
-        a.append((REF_V, "tied", "neox", [0], []))                          # pipeline check against Porian mid-ladder
-    return a
+    # untied-50k = Porian's config (its w480 run is the G2 pipeline check against Porian mid-ladder) and tied-8k
+    return [(REF_V, "untied", "neox", SEEDS_LARGE, ["cool@20"]), (8192, "tied", "own-bpe", SEEDS_LARGE, ["cool@20"])]
 
 
-LR_CHECK = {(128, 8192, "tied"), (128, REF_V, "untied"), (224, 8192, "tied"), (224, REF_V, "untied")}
+LR_CHECK = {(128, 8192, "tied"), (128, REF_V, "tied"), (224, 8192, "tied"), (224, REF_V, "tied")}
 
 
 def main():
@@ -106,12 +116,23 @@ def main():
     runs.insert(0, "array_index", range(len(runs)))
     runs.to_csv(HERE / "runs.csv", index=False)
 
+    meas = P0 / "probe.csv"
+    if meas.exists():                                  # measured: tokens / (tokens/s) + one full eval per eval point
+        pr = pd.read_csv(meas).set_index(["width", "vocab"])
+        n_eval = runs.run.map(lambda k: len(EVAL_TPP) if k in ("const", "lr x0.5", "lr x2") else 1)
+        tps = [pr.loc[(w, V), "tokens_per_sec"] for w, V in zip(runs.width, runs.vocab)]
+        ev = [pr.loc[(w, V), "eval_sec_full"] for w, V in zip(runs.width, runs.vocab)]
+        runs["gpuh_measured"] = (runs.tokens / tps + n_eval * ev) / 3600
+        runs.to_csv(HERE / "runs.csv", index=False)
     g = runs.groupby(["phase", "width"]).agg(N_nonemb=("N_nonemb", "first"), runs=("run", "size"),
                                               tokens_B=("tokens", lambda x: x.sum() / 1e9),
                                               gpuh_pess=("gpuh_pess", "sum"), gpuh_central=("gpuh_central", "sum"),
-                                              gpuh_opt=("gpuh_opt", "sum")).reset_index()
+                                              gpuh_opt=("gpuh_opt", "sum"),
+                                              **({"gpuh_measured": ("gpuh_measured", "sum")} if meas.exists() else {})
+                                              ).reset_index()
     g.to_csv(HERE / "budget.csv", index=False)
-    ph = runs.groupby("phase")[["gpuh_pess", "gpuh_central", "gpuh_opt"]].sum()
+    cols = ["gpuh_pess", "gpuh_central", "gpuh_opt"] + (["gpuh_measured"] if meas.exists() else [])
+    ph = runs.groupby("phase")[cols].sum()
     lines = ["# DM-4 GPU-hour estimate (L40S, FLOP-based; phase 0 replaces the ASSUME lines with measured throughput)",
              "", g.to_string(index=False, float_format=lambda v: f"{v:.2f}"), "", ph.to_string(float_format=lambda v: f"{v:.1f}"), "",
              f"Total runs: {len(runs)} (phase 1: {(runs.phase == 1).sum()}, phase 2: {(runs.phase == 2).sum()})",
@@ -119,6 +140,13 @@ def main():
              f"optimistic {runs.gpuh_opt.sum():.1f}",
              f"Largest single run (central): {runs.gpuh_central.max():.2f} GPU-h "
              f"({runs.loc[runs.gpuh_central.idxmax(), ['width', 'vocab', 'tie', 'run']].to_dict()})"]
+    if meas.exists():
+        dev = pd.read_csv(meas).device.iloc[0]
+        lines += ["", f"MEASURED (phase 0 probe on one {dev}, bytes per token measured): total "
+                  f"{runs.gpuh_measured.sum():.1f} GPU-h; phase 1 {runs[runs.phase == 1].gpuh_measured.sum():.1f}, "
+                  f"phase 2 {runs[runs.phase == 2].gpuh_measured.sum():.1f}; largest single run "
+                  f"{runs.gpuh_measured.max():.2f} GPU-h "
+                  f"({runs.loc[runs.gpuh_measured.idxmax(), ['width', 'vocab', 'tie', 'run']].to_dict()})"]
     (HERE / "budget.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 

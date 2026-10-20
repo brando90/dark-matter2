@@ -34,7 +34,7 @@ bad = 0
 for (w, d), g in r.groupby(["width", "depth"]):
     c = porian_counts(w, d)
     bad += int((g.N_nonemb != c["N_nonemb"]).any())
-    t = g[(g.vocab == 50432) & (g.tie == "tied")]
+    t = g[(g.vocab == 50432) & (g.tie == "tied")]          # N_total(tied-50k) = N_ref = N_nonemb + 50,432 w
     bad += int((t.N_total != c["N_total"]).any())
     u = g[g.tie == "untied"]
     bad += int((u.N_emb != 2 * u.vocab * w).any())

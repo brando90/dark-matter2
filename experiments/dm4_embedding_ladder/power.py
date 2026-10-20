@@ -1,15 +1,17 @@
 """DM-4 power check (CPU, no training): can the DM-4 design pin the embedding weight c, and does its second-term
 test stay quiet under a 1-term law and fire under DM-3's 2-term law?
 
-    python power.py [--sims 200]      # writes power.csv and power.md next to this file
+    python power.py [--sims 200] [--jobs 4]      # writes power.csv and power.md next to this file
 
 Planted laws are DM-3's fits to Porian rw tuned-short-const at D = 20N (nats per NeoX token):
   acc-c0.1 / acc-c0.5 / acc-c1.0: 1-term law in N_c = N_nonemb + c N_emb, refitted at that c (fitlib.fit1);
   dm-c1.07: DM-3's 2-term best fit (c2 = 1.066, E 1.294, A 4.560, alpha 0.151, B 3.220, beta 1.462).
 Each simulated dataset is the DM-4 design (runs.csv, constant-LR runs at D/N = 20, seed means) plus, for the full
-design, Porian's own tied-50k runs at w384..w1120 (the sizes DM-3 used). Noise per point: Porian's seed sd at that
+design, Porian's own untied-50k runs at w384..w1120 (the sizes DM-3 used). Noise per point: Porian's seed sd at that
 width (the larger of rw and owt2, log-interpolated) divided by sqrt(seeds). Tokenizer groups get their own
-intercept E_g in the fit (the planted offsets are 0).
+intercept E_g in the fit (the planted offsets are 0). The planted c values are DM-3's (fitted with N_emb = 50,432 w
+for Porian; Amendment 1 counts its untied embeddings as 2 V w); here they act on unique embedding parameters, which
+is all the identification and false-fire checks need.
 The fit is the one PREREG DM-4 fixes: variable projection over grids of c, alpha (and beta - alpha), linear
 non-negative solve for (E_g, A[, B]); 95% profile set for c from n ln(RSS / RSS_min) <= 3.84.
 """
@@ -47,10 +49,11 @@ def design(full):
     if full:
         extra = []
         for w, d in PORIAN_LARGE:
-            if ((pts.width == w) & (pts.vocab == 50432) & (pts.tie == "tied")).any():
+            if ((pts.width == w) & (pts.vocab == 50432) & (pts.tie == "untied")).any():
                 continue
-            extra.append(dict(width=w, vocab=50432, tie="tied", tokenizer="neox",
-                              N_nonemb=d * (4 * w * w + 3 * w * hidden(w)), N_emb=50432 * w, seeds=1))
+            # Porian's runs are untied (Amendment 1): unique embedding parameters 2 V w
+            extra.append(dict(width=w, vocab=50432, tie="untied", tokenizer="neox",
+                              N_nonemb=d * (4 * w * w + 3 * w * hidden(w)), N_emb=2 * 50432 * w, seeds=1))
         pts = pd.concat([pts, pd.DataFrame(extra)], ignore_index=True)
     s = pd.read_csv(SIGMA).groupby("width").sd.max()
     sd = np.exp(np.interp(np.log(pts.width), np.log(s.index.values), np.log(s.values)))
@@ -115,20 +118,33 @@ def analyse(p, y):
                 c2_hi=c2set.max(), dbic=dbic, z=z, fires=bool(dbic > 2 and z > 2))
 
 
+def cell(args):
+    full, name, sims = args
+    p = design(full)
+    law = LAWS[name]
+    mu = truth(p, law)
+    rng = np.random.default_rng(20261019 + 7 * full + sum(map(ord, name)))
+    rows = []
+    for k in range(sims):
+        y = mu + rng.normal(0, p.sd.values)
+        rows.append(dict(design="phase1+2+Porian" if full else "phase1", law=name, c_true=law["c"],
+                         npts=len(p), sim=k, **analyse(p, y)))
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sims", type=int, default=200)
+    ap.add_argument("--jobs", type=int, default=1, help="cells in parallel (same random streams, same results)")
     a = ap.parse_args()
-    rows = []
-    for full in (False, True):
-        p = design(full)
-        for name, law in LAWS.items():
-            mu = truth(p, law)
-            rng = np.random.default_rng(20261019 + 7 * full + sum(map(ord, name)))
-            for k in range(a.sims):
-                y = mu + rng.normal(0, p.sd.values)
-                rows.append(dict(design="phase1+2+Porian" if full else "phase1", law=name, c_true=law["c"],
-                                 npts=len(p), sim=k, **analyse(p, y)))
+    cells = [(full, name, a.sims) for full in (False, True) for name in LAWS]
+    if a.jobs > 1:
+        from multiprocessing import Pool
+        with Pool(a.jobs) as pool:
+            out = pool.map(cell, cells)
+    else:
+        out = [cell(c) for c in cells]
+    rows = [r for o in out for r in o]
     df = pd.DataFrame(rows)
     df.to_csv(HERE / "power.csv", index=False)
     df["cover1"] = (df.c1_lo <= df.c_true + 1e-9) & (df.c_true <= df.c1_hi + 1e-9)

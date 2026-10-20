@@ -359,7 +359,7 @@ phase 1b takes about three; phase 2 needs a larger allocation (e.g. Marlowe) or 
    bootstrap refits; results manifest hashes match.
 
 ## Limitations, known now
-Only RefinedWeb (no owt2); hyperparameters tuned for tied-50k only (the LR check tests the worst case); vocab also
+Only RefinedWeb (no owt2); hyperparameters tuned for untied-50k only (Amendment 1; the LR check tests tied-8k and tied-50k); vocab also
 changes context in bytes and tokenizer quality, which only E_g absorbs; seed counts at phase 2 are 1, so P3 rests on
 the small bodies' seed means.
 
@@ -382,3 +382,47 @@ keeps the second-term test's false-fire rate <= 6.5% and detects DM-3's 2-term l
 M2's set covers the true c = 1.066 in only 27-48% because it lies between grid points and the set is one grid point
 wide: a grid artefact the 0.01 analysis grid removes. These numbers assume the law form is right, the same law in
 every tokenizer group up to E_g, and Gaussian seed noise; a tokenizer effect that changes with size is not modelled.
+
+## DM-4 Amendment 1 (2026-10-20, phase 0, before any DM-4 training run)
+Phase 0 read Porian et al.'s released checkpoints (huggingface.co/formll/resolving-scaling-law-discrepancies) and
+their evaluating_checkpoint.py. Three facts differ from what DM-2, DM-3 and the DM-4 addendum assumed:
+1. **Porian's models are untied.** evaluating_checkpoint.py builds every model with `weight_tying: False`, and the
+   w128 checkpoint (rw, tuned, short warmup, constant LR, step 2,421) has `output.weight` != `tok_embeddings.weight`.
+2. They use 4 attention heads at every width (head dim w/4), LayerNorm with gain and bias (also as qk-norm over the
+   full width), rotary on the full head dim; SwiGLU hidden 256 ceil(int(8w/3)/256) as assumed.
+3. Their N (body + head, D = 20N) is N_nonemb + 50,432 w: the head is counted, the input embedding is not. DM-4's
+   data per body (20 x N_total of "tied-50k" = 20 (N_nonemb + 50,432 w)) is therefore unchanged; it is renamed N_ref.
+
+Changes to the DM-4 design (design.py, runs.csv, power.py), made now, before any run:
+- The anchor arm is **untied-50k** (NeoX), Porian's exact configuration. G1: our untied-50k seed mean at D/N = 20 is
+  within +-0.05 nats of Porian at w128/w160 (4.796/4.598); thresholds and rule unchanged.
+- Phase 2 runs untied-50k (own; its w480 run is G2 against Porian's 3.771) and tied-8k. The extra own tied-50k run
+  at w480 is dropped (the untied-50k w480 run is the same check): 210 runs instead of 211. Porian's own untied-50k
+  runs at w384-w1120 add to the untied-50k arm, pooled only if G1 passes; they enter the fit with N_emb = 2 V w.
+- LR check: tied-8k and tied-50k at w128 and w224 (x0.5, x2); untied-50k is the tuned configuration itself.
+- Hyperparameters were tuned by Porian for untied-50k, not tied-50k; the limitations line reads accordingly.
+- power.py's Porian points are untied (N_emb = 2 V w); re-run results below.
+- Byte-level BPE: one HF tokenizers run at 50,432 on the 1 GB slice (NeoX's normalizer and pre-tokenizer); the 8,192
+  and 32,768 tokenizers are its first V - 257 merges (BPE is greedy, so a smaller run is this prefix).
+- Training data: shards are consumed in index order, each shuffled by (seed, shard), so a run's bytes never depend
+  on how many shards are prepared; phase 0/1 prepares 8 training shards (~3.8 GB; w320 needs ~2.5 GB), phase 2 adds
+  shards before its launch. The bytes-per-token that sets D_bytes is NeoX's on the first training shard (fixed
+  whatever the pool size).
+- Trainer: a minimal re-implementation of OpenLM's model (model.py; parameter names identical, so Porian's
+  checkpoints load strictly) and recipe (train.py). eval_porian.py scores Porian's own w128/w160 checkpoints on our
+  validation slice: that checks the model code and gives the validation-set offset, reported next to G1 (not a gate).
+
+Consequence for DM-3 (not re-run here): DM-3 counted Porian's embedding as N_emb = 50,432 w (tied). With the true
+untied count 2 x 50,432 w, every c DM-3 reports is in units of 50,432 w; in unique embedding parameters it is c/2
+(DM-3's split set [0.05, 0.11] U [1.55, 2.0+] becomes [0.025, 0.055] U [0.78, 1.0+]). DM-3's verdict (undetermined)
+does not change, since along one ladder the count only rescales c.
+
+Power check re-run (power.py --jobs 4: the same random streams; phase-1 rows reproduce the addendum's table
+exactly). The full design now has 43 points (own untied-50k runs at w384-w704 replace Porian's points there).
+verify_design.py: ALL PASS.
+| design (points) | planted law | median c (M1) | M1 95% set covers c | second term fires | median dBIC |
+|---|---|---|---|---|---|
+| phase 1 (30) | 1-term, c = 0.1 / 0.5 / 1.0 | 0.10 / 0.50 / 1.00 | 1.00 / 0.96 / 0.92 | 0.00 / 0.045 / 0.01 | -6.8 / -6.6 / -6.4 |
+| phase 1 (30) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 59 |
+| phase 1+2+Porian (43) | 1-term, c = 0.1 / 0.5 / 1.0 | 0.10 / 0.50 / 1.00 | 1.00 / 0.91 / 0.85 | 0.045 / 0.04 / 0.015 | -7.5 / -6.2 / -5.8 |
+| phase 1+2+Porian (43) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 159 |
