@@ -10,16 +10,15 @@
      2    480  33177600     4      3.01       4.03          2.88      2.31           8.20
      2    576  55738368     4      4.45       9.03          6.45      5.16          16.40
      2    640  76185600     4      5.69      14.87         10.62      8.50          24.06
-     2    704 113541120     4      7.82      28.61         20.43     16.35          46.18
+     2    704 113541120     4      7.82      28.61         20.43     16.35          42.16
 
        gpuh_pess  gpuh_central  gpuh_opt  gpuh_measured
 phase                                                  
 1           34.1          21.8      15.3           67.8
-2           59.2          42.2      33.6           99.0
+2           59.2          42.2      33.6           95.0
 
 Total runs: 210 (phase 1: 190, phase 2: 20)
 Total GPU-h: pessimistic 93.3, central 64.0, optimistic 48.9
 Largest single run (central): 8.58 GPU-h ({'width': 704, 'vocab': 50432, 'tie': 'untied', 'run': 'const'})
 
-MEASURED (phase 0 probe on one NVIDIA L40S, bytes per token measured): total 166.8 GPU-h; phase 1 67.8, phase 2 99.0; largest single run 20.77 GPU-h ({'width': 704, 'vocab': 50432, 'tie': 'untied', 'run': 'const'})
-Not yet probed, scaled from the widest probed body by FLOPs per token: widths [704] (46.2 GPU-h of the total)
+MEASURED (phase 0 probe on one NVIDIA L40S, bytes per token measured): total 162.8 GPU-h; phase 1 67.8, phase 2 95.0; largest single run 18.61 GPU-h ({'width': 704, 'vocab': 50432, 'tie': 'untied', 'run': 'const'})

@@ -1,9 +1,9 @@
 # DM-4 phase 0 results (Sherlock, Oct 20 2026)
 
 Jobs: dm4-prep 48657441, dm4-prepfull 48658005, dm4-probe 48658006 (TIMEOUT at 45 min after w640), dm4-g1 48658007
-(6 tasks), dm4-p0post 48658008. Files here: bpt.json (bytes per token), probe.csv (27 configs, one L40S, eager),
-phase0_summary.json (G1 rows). The probe rerun for w704 + compiled repeats + Porian's checkpoints on our full
-validation slice is job 48681732 (dm4-probe2).
+(6 tasks), dm4-p0post 48658008. Probe rerun dm4-probe2 48681732 (w704 + compiled repeats + Porian's checkpoints on our full validation slice).
+Files here: bpt.json (bytes per token), probe.csv (30 configs w128-w704, one L40S, eager), probe_compiled.csv
+(torch.compile repeats), porian_check.json (Porian's checkpoints on our full val slice), phase0_summary.json (G1 rows).
 
 ## G1 (untied-50k, seed mean at D/N = 20, +-0.05 nats of Porian rw tuned-short-const)
 | width | seeds (nats / NeoX token) | mean | sd | Porian | diff | verdict |
@@ -11,13 +11,14 @@ validation slice is job 48681732 (dm4-probe2).
 | 128 | 4.8798 / 4.8247 / 4.8195 | 4.8413 | 0.033 | 4.796 | +0.045 | pass |
 | 160 | 4.6647 / 4.6558 / 4.6704 | 4.6636 | 0.007 | 4.598 | +0.066 | FAIL (~4 SE) |
 
-G1 = FAIL. As pre-registered: no phase 1 until the pipeline is fixed (or a gate change is written down as Amendment 2).
+G1 = FAIL (at both widths once the val-slice offset is removed, see below). As pre-registered: no phase 1 until the pipeline is fixed (or a gate change is written down as Amendment 2).
 
 ## Is it the validation slice or the trainer?
-- Porian's own w128 (step 2421) and w160 (step 3241) checkpoints, scored on the first 120 windows (245,760 tokens) of
-  our validation slice during the CPU smoke: 4.768 and 4.558, against Porian's logged val/loss 4.811 and 4.576 at the
-  same steps. Our slice is, if anything, slightly easier (-0.04 / -0.02), so the validation-set offset does not explain
-  the miss. The full-slice number comes with dm4-probe2 (porian_check.json).
+- Porian's own w128 (step 2421) and w160 (step 3241) checkpoints, scored on our full validation slice (5,878,508
+  targets, porian_check.json): 4.7596 and 4.5287, against Porian's logged val/loss 4.811 and 4.576 at the same steps.
+  Our slice is easier by 0.051 / 0.047 nats, so the validation-set offset does not explain the miss; it hides part of
+  it. Corrected for the slice, our trainer is ~+0.096 (w128) and ~+0.113 (w160) behind Porian: G1 fails at both
+  widths, not only at w160. (CPU smoke on the first 120 windows: 4.768 / 4.558, same direction.)
 - Same data, model at equal tokens: Porian's curve on our slice at our step counts is ~4.74 (w128, step 2621) and
   ~4.58 (w160, step 3002) (log-step interpolation of its checkpoints). Ours: 4.84 and 4.66. Trainer gap ~+0.08 to
   +0.10 nats at both widths.
@@ -36,7 +37,8 @@ G1 = FAIL. As pre-registered: no phase 1 until the pipeline is fixed (or a gate 
 
 ## Throughput and budget (measured)
 One L40S, eager mode: tokens/s from 590k (w128, 8k vocab) to 55k (w640, NeoX). The measured cost of a G1 run matches
-the prediction (w128 seed 2: 1,302 s logged vs 1,307 s predicted). budget.md: 166.8 GPU-h in total (phase 1 67.8,
-phase 2 99.0), 1.8x the pessimistic FLOP estimate (93.3): small bodies run at low utilisation, the 50k unembedding
-dominates. w704 is scaled from w640 by FLOPs per token until dm4-probe2 measures it (46.2 GPU-h of the total).
-Phase 1 at 4 FarmShare L40S is ~17 h of wall time. Compiled-mode speedup: from dm4-probe2.
+the prediction (w128 seed 2: 1,302 s logged vs 1,307 s predicted). budget.md (first pass, w704 scaled): 166.8 GPU-h; 1.8x the pessimistic FLOP estimate (93.3): small bodies run at low utilisation, the 50k unembedding
+dominates. Now fully measured (w704 from dm4-probe2): 162.8 GPU-h in total (phase 1 67.8, phase 2 95.0; w704 42.2,
+largest single run w704 untied-50k const 18.6 GPU-h), 1.74x the pessimistic estimate.
+Phase 1 at 4 FarmShare L40S is ~17 h of wall time. torch.compile: 1.02x at w128, 1.30x at w704 (NeoX vocab); worth
+turning on for phase 2's wide bodies (~-20% there), not for phase 1.
