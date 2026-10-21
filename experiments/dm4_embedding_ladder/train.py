@@ -17,6 +17,11 @@ measured NeoX bytes per token of the first training shard (fixed whatever the po
 sees ~tpp x N_ref tokens, as Porian's D = 20 N.
 Eval: the held-out validation slice in the run's own tokenizer, 2,048-token windows; y = summed NLL (nats) / number
 of NeoX tokens in the same documents (nats per reference token; for NeoX arms the usual loss).
+G1 trainer-gap diagnostic (diag_g1.py): --init-from <checkpoint> loads weights only (Porian's {"state_dict": module.*}
+or our own {"model": ...}), a fresh AdamW; --start-step N trains steps N..--end-step M on the stream positions
+step N would have read (the LR is the constant LR, which needs N >= warmup steps); --shuffle-windows draws each
+batch from a seeded global permutation of the 2,048-token windows of that step range instead of bs consecutive windows
+(same windows, same bytes, different batch composition). Only the final point is evaluated (tpp field = the token/N_ref ratio).
 Cooldown branch cool@k: from the checkpoint at 0.8 D_k, LR linear to 0 over the last 0.2 D_k, evaluated at D_k.
 Checkpoints every --ckpt-minutes; a requeued job resumes from the last one.
 """
@@ -123,6 +128,24 @@ class Stream:
         w = np.lib.stride_tricks.sliding_window_view(x, CTX + 1)[::CTX][:bs]
         return torch.from_numpy(np.ascontiguousarray(w))
 
+    def window(self, g):
+        return self.slice(g * CTX, g * CTX + CTX + 1).astype(np.int64)
+
+
+class ShuffledWindows:
+    """Batch s = bs windows from a seeded global permutation of the windows of steps [start, end): the same windows (and
+    bytes) as Stream.batch over that range, but every batch mixes windows from all over the range (consecutive windows
+    of one long document no longer share a batch)."""
+
+    def __init__(self, stream, bs, start, end, seed):
+        self.stream, self.bs, self.start = stream, bs, start
+        self.perm = start * bs + np.random.default_rng([seed, 4242]).permutation((end - start) * bs)
+
+    def batch(self, step, bs):
+        assert bs == self.bs
+        k = (step - self.start) * bs
+        return torch.from_numpy(np.stack([self.stream.window(int(g)) for g in self.perm[k:k + bs]]))
+
 
 def prefetch(stream, bs, first, last):
     q = queue.Queue(maxsize=6)
@@ -189,6 +212,9 @@ def run(a):
     step_for = lambda b: math.ceil(stream.pos_for_bytes(b) / tok_per_step)
     if a.probe_steps:                    # a probe needs only probe_steps of data, whatever the body's budget
         total, evals, branches = a.probe_steps, {}, {}
+    elif a.end_step:                     # a diagnostic leg: stop (and evaluate) at --end-step, no cooldown branches
+        total, evals, branches = a.end_step, {a.end_step: round(a.end_step * tok_per_step / (n_ref * bpt_ref), 3)}, {}
+        assert a.start_step < total
     else:
         total = step_for(D_bytes)
         evals = {step_for(k * n_ref * bpt_ref): k for k in a.eval_tpp if k <= a.tpp}
@@ -234,7 +260,7 @@ def run(a):
     def train_leg(leg, start, end, lr_at):
         nonlocal micro, last_ckpt
         step, timed = start, []
-        it = prefetch(stream, a.bs, start, end)
+        it = prefetch(batches, a.bs, start, end)
         for s, xb in it:
             for g in opt.param_groups:
                 g["lr"] = lr_at(s)
@@ -270,7 +296,7 @@ def run(a):
                 raise SystemExit(f"non-finite loss at step {step}")
             if leg == "const" and step in evals:
                 k = evals[step]
-                e = evaluate(model, val_stream, n_ref_val, val_bytes, dev, micro)
+                e = evaluate(model, val_stream, n_ref_val, val_bytes, dev, micro, limit_windows=a.eval_limit_windows)
                 e.update(kind="const", tpp=k, step=step, tokens=step * tok_per_step, bytes=stream.bytes_at(step * tok_per_step))
                 res["evals"].append(e)
                 log("eval", leg, k, f"y={e['y']:.4f}")
@@ -286,7 +312,16 @@ def run(a):
         return timed
 
     const_lr = lambda s: a.lr * (s + 1) / W if s < W else a.lr
-    start = 0
+    start, batches = a.start_step, stream
+    if a.init_from:
+        assert a.start_step >= W, f"--start-step {a.start_step} is inside the warmup ({W} steps)"
+        sd = torch.load(a.init_from, map_location="cpu", weights_only=False)
+        sd = sd.get("state_dict", sd.get("model", sd))
+        model.load_state_dict({k.replace("module.", ""): v for k, v in sd.items()}, strict=True)
+        log("initialised from", a.init_from, "(weights only, fresh AdamW) at step", start)
+    if a.shuffle_windows:
+        assert a.end_step, "--shuffle-windows needs --end-step (the permuted range is [start-step, end-step))"
+        batches = ShuffledWindows(stream, a.bs, a.start_step, a.end_step, a.seed)
     if ck.exists() and not a.probe_steps:
         st = torch.load(ck, map_location=dev)
         if st["leg"] == "const":
@@ -373,6 +408,11 @@ def main():
     ap.add_argument("--micro-bs", type=int)
     ap.add_argument("--compile", action="store_true")
     ap.add_argument("--no-cooldown", action="store_true")
+    ap.add_argument("--init-from", help="checkpoint to load weights from (fresh AdamW); needs --start-step >= warmup steps")
+    ap.add_argument("--start-step", type=int, default=0)
+    ap.add_argument("--end-step", type=int, help="stop and evaluate here (diagnostic leg; no cooldown branches)")
+    ap.add_argument("--shuffle-windows", action="store_true")
+    ap.add_argument("--eval-limit-windows", type=int, help="score only the first windows of the validation slice (CPU smoke)")
     ap.add_argument("--probe-steps", type=int, default=0)
     ap.add_argument("--probe-skip", type=int, default=20)
     ap.add_argument("--ckpt-minutes", type=float, default=30)
