@@ -147,6 +147,32 @@ class ShuffledWindows:
         return torch.from_numpy(np.stack([self.stream.window(int(g)) for g in self.perm[k:k + bs]]))
 
 
+class ChunkShuffled:
+    """Amendment 2: batch s = bs windows of a seeded permutation of the windows of s's chunk of `chunk` steps. The same
+    windows (and bytes) as Stream.batch, every batch drawn from `chunk` x bs windows spread over the chunk instead of
+    bs consecutive windows (consecutive windows of one long document no longer share a batch). The permutation depends
+    only on (seed, chunk index), never on the run's length, so the const leg, the cooldown legs and a resumed run see
+    the same batch at the same step, and the data seen up to a chunk boundary equals the stream's prefix."""
+
+    def __init__(self, stream, bs, chunk, seed):
+        self.stream, self.bs, self.chunk, self.seed = stream, bs, chunk, seed
+        self.n_windows = int(stream.cumT[-1] - 1) // CTX
+        self._c, self._perm = None, None
+
+    def _perm_of(self, c):
+        if c != self._c:
+            lo, hi = c * self.chunk * self.bs, min((c + 1) * self.chunk * self.bs, self.n_windows)
+            assert hi > lo, "training pool too small for the run"
+            self._c, self._perm = c, lo + np.random.default_rng([self.seed, 4243, c]).permutation(hi - lo)
+        return self._perm
+
+    def batch(self, step, bs):
+        assert bs == self.bs
+        perm = self._perm_of(step // self.chunk)
+        k = (step % self.chunk) * bs
+        return torch.from_numpy(np.stack([self.stream.window(int(g)) for g in perm[k:k + bs]]))
+
+
 def prefetch(stream, bs, first, last):
     q = queue.Queue(maxsize=6)
 
@@ -313,6 +339,8 @@ def run(a):
 
     const_lr = lambda s: a.lr * (s + 1) / W if s < W else a.lr
     start, batches = a.start_step, stream
+    if a.shuffle_chunk_steps and not a.end_step:      # diagnostic legs (--end-step) keep their own order (arm A / --shuffle-windows)
+        batches = ChunkShuffled(stream, a.bs, a.shuffle_chunk_steps, a.seed)
     if a.init_from:
         assert a.start_step >= W, f"--start-step {a.start_step} is inside the warmup ({W} steps)"
         sd = torch.load(a.init_from, map_location="cpu", weights_only=False)
@@ -412,6 +440,8 @@ def main():
     ap.add_argument("--start-step", type=int, default=0)
     ap.add_argument("--end-step", type=int, help="stop and evaluate here (diagnostic leg; no cooldown branches)")
     ap.add_argument("--shuffle-windows", action="store_true")
+    ap.add_argument("--shuffle-chunk-steps", type=int, default=1024,
+                    help="Amendment 2: shuffle the windows within each chunk of this many steps (0 = the old consecutive windows)")
     ap.add_argument("--eval-limit-windows", type=int, help="score only the first windows of the validation slice (CPU smoke)")
     ap.add_argument("--probe-steps", type=int, default=0)
     ap.add_argument("--probe-skip", type=int, default=20)

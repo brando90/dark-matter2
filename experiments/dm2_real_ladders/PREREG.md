@@ -426,3 +426,28 @@ verify_design.py: ALL PASS.
 | phase 1 (30) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 59 |
 | phase 1+2+Porian (43) | 1-term, c = 0.1 / 0.5 / 1.0 | 0.10 / 0.50 / 1.00 | 1.00 / 0.91 / 0.85 | 0.045 / 0.04 / 0.015 | -7.5 / -6.2 / -5.8 |
 | phase 1+2+Porian (43) | DM-3 2-term, c = 1.07 | 1.05 (M2) | - | 1.00 | 159 |
+
+## DM-4 Amendment 2 (2026-10-21, after the G1 trainer-gap diagnostic, before any G1 rerun)
+**Why.** G1 failed (PHASE0.md): our untied-50k runs sit ~+0.096 (w128) / ~+0.113 (w160) nats behind Porian once the
+validation-slice offset (our slice is 0.051 / 0.047 nats easier, porian_check.json) is removed. The diagnostic
+(diag_g1.json, job 48811183, w128, full validation slice of 5,878,508 targets, both arms start from Porian's step-1211
+weights with a fresh AdamW and train to step 2421 with the same hyperparameters): arm A (our stream, one batch = 28
+consecutive windows) 4.8104; arm B (the same windows, globally permuted over the 1,210 steps) 4.7659; Porian's own
+step-2421 checkpoint 4.7596. Arm A is +0.0507 behind Porian over those 1,210 steps, arm B +0.0063: batch composition
+(consecutive windows of one long document sharing a batch) accounts for 0.0445 nats (88%) of the gap over that stretch,
+and 0.006 is left. Adam epsilon, grad clip and init were not varied (the diagnostic starts from Porian's weights);
+they remain candidate suspects for the rest only if the rerun still fails.
+**What changes.** train.py gets ChunkShuffled: batch s draws its 28 windows from a seeded permutation of the windows of
+its 1,024-step chunk (--shuffle-chunk-steps 1024, default on for every run; 0 restores the old order). The windows,
+bytes and D_bytes are exactly those of the old stream (only their order inside a chunk changes), the permutation depends
+only on (seed, chunk index) so the const leg, cooldown legs and resumed runs agree, and arms stay paired by seed.
+Everything else (model, optimiser, LR, budget, runs.csv, evaluation) is unchanged. The diagnostic legs (--end-step)
+keep their own order. The fix is applied to all phase 1 and phase 2 runs alike.
+**G1 rerun (FarmShare L40S, farmshare/g1.sbatch, results in $DM4/g1r).** untied-50k NeoX, w128 and w160, seeds 0-2, constant LR to D/N = 20,
+the same runs.csv rows as the first G1. Gate (rule of PHASE0.md, offset removed): the seed mean of y at D/N = 20 must be
+within +-0.05 nats of Porian's 4.796 (w128) / 4.598 (w160) on our slice, i.e. after adding the slice offset 0.051 /
+0.047: raw seed mean in [4.695, 4.795] (w128) and [4.501, 4.601] (w160). Both widths must pass. A run landing more than
+0.05 BELOW the bar is also a fail (it would mean something other than Porian's recipe).
+**If G1 passes:** phase 1 (runs.csv phase 1, ~68 L40S GPU-h) is launched on FarmShare as a resumable array, at most 4
+GPUs. **If it fails:** no phase 1; the numbers go to Brando with the next suspect to test (Adam eps, grad clip, init,
+warmup start).
