@@ -1,0 +1,11 @@
+PASS  1a runs.csv regenerates byte-identical from design.py  4e0255537bfb
+PASS  1b N_nonemb, tied-50k N_total (DM-2 porian_counts) and untied N_emb = 2Vw  0 mismatches
+PASS  1c every phase-1 main arm has 3 seeds, phase 2 has 1  
+PASS  2 phase1 acc-c0.1: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 0.10, cover 1.00, fires 0.00
+PASS  2 phase1 acc-c0.5: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 0.50, cover 0.96, fires 0.04
+PASS  2 phase1 acc-c1.0: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 1.00, cover 0.92, fires 0.01
+PASS  2 phase1+2+Porian acc-c0.1: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 0.10, cover 1.00, fires 0.04
+PASS  2 phase1+2+Porian acc-c0.5: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 0.50, cover 0.91, fires 0.04
+PASS  2 phase1+2+Porian acc-c1.0: median c1 within 0.05, M1 set coverage >= 0.8, false fires <= 0.10  median c1 1.00, cover 0.85, fires 0.01
+PASS  2 phase1+2+Porian dm-c1.07: second term fires >= 0.8  fires 1.00
+ALL PASS

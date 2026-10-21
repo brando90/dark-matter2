@@ -1,0 +1,90 @@
+{
+ "bpe32k": {
+  "val": {
+   "shards": 1,
+   "bytes": 24998416,
+   "tokens_incl_eos": 5929403,
+   "docs": 8798,
+   "bytes_per_token": 4.216008930410026
+  },
+  "train": {
+   "shards": 8,
+   "bytes": 3597573575,
+   "tokens_incl_eos": 836240828,
+   "docs": 1399352,
+   "bytes_per_token": 4.30207836611393
+  },
+  "train_first": {
+   "shard": 4,
+   "bytes": 464307976,
+   "tokens_incl_eos": 107755809,
+   "bytes_per_token": 4.308890446917808
+  }
+ },
+ "bpe50k": {
+  "val": {
+   "shards": 1,
+   "bytes": 24998416,
+   "tokens_incl_eos": 5760708,
+   "docs": 8798,
+   "bytes_per_token": 4.339469384665913
+  },
+  "train": {
+   "shards": 8,
+   "bytes": 3597573575,
+   "tokens_incl_eos": 811222612,
+   "docs": 1399352,
+   "bytes_per_token": 4.434755049702683
+  },
+  "train_first": {
+   "shard": 4,
+   "bytes": 464307976,
+   "tokens_incl_eos": 104536746,
+   "bytes_per_token": 4.441576706433927
+  }
+ },
+ "bpe8k": {
+  "val": {
+   "shards": 1,
+   "bytes": 24998416,
+   "tokens_incl_eos": 6920590,
+   "docs": 8798,
+   "bytes_per_token": 3.612179886396969
+  },
+  "train": {
+   "shards": 8,
+   "bytes": 3597573575,
+   "tokens_incl_eos": 983083281,
+   "docs": 1399352,
+   "bytes_per_token": 3.6594799693272373
+  },
+  "train_first": {
+   "shard": 4,
+   "bytes": 464307976,
+   "tokens_incl_eos": 126698974,
+   "bytes_per_token": 3.664654585127106
+  }
+ },
+ "neox": {
+  "val": {
+   "shards": 1,
+   "bytes": 24998416,
+   "tokens_incl_eos": 5878509,
+   "docs": 8798,
+   "bytes_per_token": 4.252509607453183
+  },
+  "train": {
+   "shards": 8,
+   "bytes": 3597573575,
+   "tokens_incl_eos": 828352015,
+   "docs": 1399352,
+   "bytes_per_token": 4.34304922285968
+  },
+  "train_first": {
+   "shard": 4,
+   "bytes": 464307976,
+   "tokens_incl_eos": 106741638,
+   "bytes_per_token": 4.349829969819275
+  }
+ }
+}

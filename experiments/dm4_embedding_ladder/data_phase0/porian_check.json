@@ -1,0 +1,30 @@
+[
+ {
+  "nll_sum": 27979600.190185547,
+  "targets": 5878508,
+  "y": 4.759642315795646,
+  "nats_per_byte": 1.1192549235993812,
+  "loss_own": 4.759643125464072,
+  "width": 128,
+  "depth": 4,
+  "checkpoint": "dataset=rw/hparams=tuned_warmup=short_decay=const/params=7M_maxstep=52340/flop_6.25e+15_step_2421.pt",
+  "step": 2421,
+  "tokens": 138829824,
+  "tpp": 18.50109170305677,
+  "limit_windows": null
+ },
+ {
+  "nll_sum": 26622142.75,
+  "targets": 5878508,
+  "y": 4.528723652545229,
+  "nats_per_byte": 1.064953185433829,
+  "loss_own": 4.5287244229318055,
+  "width": 160,
+  "depth": 5,
+  "checkpoint": "dataset=rw/hparams=tuned_warmup=short_decay=const/params=9M_maxstep=59860/flop_1.25e+16_step_3241.pt",
+  "step": 3241,
+  "tokens": 212402176,
+  "tpp": 21.6517745302714,
+  "limit_windows": null
+ }
+]
