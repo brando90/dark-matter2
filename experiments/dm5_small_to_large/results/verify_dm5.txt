@@ -1,0 +1,12 @@
+PASS  fold counts (n-4 folds, sum_k (n-k) rows per rule, every ladder x convention)  []
+PASS  all 6 primary ladders present  
+PASS  no NaN/inf in any defined prediction or error  4948 defined rows of 5404
+PASS  undefined rows are only drop rules with k - d < 4  456 rows
+PASS  LRT rule equals 1-term for k <= 6 (untestable)  
+PASS  extrapolation ratio >= 1 for every row  
+PASS  positive control: LRT detects the planted 2nd term in a majority of k > 6 folds  rate 1.00 over 56 folds
+PASS  positive control: LRT beats 1-term at r >= 10 (median |err|, k > 6)  lrt 0.0313 vs one 1.1296, 80 pairs
+PASS  null control: LRT false-detection rate <= 0.15 on a planted pure 1-term ladder  rate 0.018 over 56 folds
+PASS  positive control: no NaN in predictions  
+PASS  null control: no NaN in predictions  
+ALL PASS
