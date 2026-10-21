@@ -92,14 +92,6 @@ def main():
     n_ref, nbytes = int(val.lens.sum()), int(val.bytes.sum())
     ev = lambda m: evaluate(m, stream, n_ref, nbytes, dev, micro=8, limit_windows=a.limit_windows)
     res = dict(args={k: str(v) for k, v in vars(a).items()}, val_tokens=n_ref, val_bytes=nbytes, evals={})
-    for s, tag in ((a.start_step, "porian_start"), (a.end_step, "porian_end")):
-        m = load(ck[s][1], dev)
-        e = ev(m)
-        e.update(checkpoint=ck[s][0], step=s)
-        res["evals"][tag] = e
-        print(tag, json.dumps(e), flush=True)
-        del m
-
     for arm in a.arms:
         d = out / f"arm{arm}"
         cmd = [sys.executable, str(HERE / "train.py"), "--root", str(root), "--out", str(d), "--width", "128", "--depth", "4",
@@ -118,6 +110,14 @@ def main():
         final = [e for e in r["evals"] if e["step"] == a.end_step][-1]
         res["evals"][f"arm{arm}"] = dict(final, train_trace=trace(log.stdout), gpu_seconds=r["gpu_seconds"])
         print("arm", arm, "y =", final["y"], flush=True)
+
+    for s, tag in ((a.start_step, "porian_start"), (a.end_step, "porian_end")):
+        m = load(ck[s][1], dev)
+        e = ev(m)
+        e.update(checkpoint=ck[s][0], step=s)
+        res["evals"][tag] = e
+        print(tag, json.dumps(e), flush=True)
+        del m
 
     y = {k: v["y"] for k, v in res["evals"].items()}
     res["summary"] = dict(y=y)
