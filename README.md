@@ -84,12 +84,12 @@ The concrete hypotheses we test first, in order:
 
 ## Planned experiments
 
-Status key: **planned** means not in this repo yet.
+Status key: **planned** means not in this repo yet; **done** links to the results.
 
 | ID | What | Compute | Status |
 | --- | --- | --- | --- |
-| DM-1 | **Power analysis on synthetic ladders.** Plant `L = E + A N^-α + B N^-β` with known values, add realistic noise, and vary the ladder span and points per decade. Measure when the Wald and BIC tests recover B and when they report a false one. Says what a real ladder must look like before any fit is trusted. | CPU, a few hours | planned (code not in this repo yet) |
-| DM-2 | **Two-term fits on public ladders.** Porian et al. (OpenWebText2 / RefinedWeb), corrected Chinchilla, the CS336 IsoFLOP ladder, the ColPret families (e.g. Chinchilla, LLaMA-style, Pythia). Per ladder: one-term vs two-term fit, SE(B) from the Hessian and from the bootstrap, Hessian condition number, BIC, and the reverse-ladder test. Output: one table answering "does any public ladder show a significant second term?" | CPU, a few hours | planned. The data is already here (see below); the fitter needs the fixes listed under Known issues first |
+| DM-1 | **Power analysis on synthetic ladders.** Plant `L = E + A N^-α + B N^-β` with known values, add realistic noise, and vary the ladder span and points per decade. Measure when the Wald and BIC tests recover B and when they report a false one. Says what a real ladder must look like before any fit is trusted. | CPU, a few hours | done: [experiments/dm1_power_analysis](experiments/dm1_power_analysis) (RESULTS.md); LRT variant in RESULTS_DM1b.md |
+| DM-2 | **Two-term fits on public ladders.** Porian et al. (OpenWebText2 / RefinedWeb), corrected Chinchilla, the CS336 IsoFLOP ladder, the ColPret families (e.g. Chinchilla, LLaMA-style, Pythia). Per ladder: one-term vs two-term fit, SE(B) from the Hessian and from the bootstrap, Hessian condition number, BIC, and the reverse-ladder test. Output: one table answering "does any public ladder show a significant second term?" | CPU, a few hours | done: [experiments/dm2_real_ladders](experiments/dm2_real_ladders) (RESULTS.md) |
 | DM-3 | **Tiny-model CPU ladder.** 10-12 sizes × 3 seeds of small transformers on one fixed corpus, dense at the small end where the term should live: the first ladder we own end to end. Sized by DM-1's answer; may be unnecessary if the Porian seeds give enough noise estimates. | ~100-200 CPU-core-hours | planned |
 | RL | **RL extension (H6).** Fit the same one-term vs two-term laws to RL reward / pass@1 curves at several policy sizes, with RL compute in place of N. DM-1's power analysis carries over. | depends on the curves | planned |
 
