@@ -1,0 +1,4 @@
+rule,ladders_with_pairs,ladders_better,ladders_worse,threshold,median_gain_nats,median_gain_pct,verdict
+lrt,6,0,0,5,0.0,0.0,NULL
+drop1,6,3,3,5,-0.009015146568611274,-22.67737578975297,NULL
+drop2,6,3,3,5,0.027707683813666072,-7.64362749678855,NULL
