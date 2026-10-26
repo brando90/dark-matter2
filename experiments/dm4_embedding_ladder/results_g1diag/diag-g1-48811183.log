@@ -1,0 +1,22 @@
+NVIDIA GeForce RTX 3090, 24576 MiB
+checkpoints: {1211: 'dataset=rw/hparams=tuned_warmup=short_decay=const/params=7M_maxstep=52340/flop_3.13e+15_step_1211.pt', 2421: 'dataset=rw/hparams=tuned_warmup=short_decay=const/params=7M_maxstep=52340/flop_6.25e+15_step_2421.pt'}
+arm A /scratch/users/brando9/dm4/venv/bin/python /scratch/users/brando9/dm4/code/experiments/dm4_embedding_ladder/train.py --root /scratch/users/brando9/dm4 --out /scratch/users/brando9/dm4/g1diag/armA --width 128 --depth 4 --vocab-name neox --tie untied --seed 0 --lr 0.0115 --bs 28 --beta2 0.99 --warmup-tokens 7503872 --init-from /scratch/users/brando9/dm4/porian_ckpts/dataset=rw__hparams=tuned_warmup=short_decay=const__params=7M_maxstep=52340__flop_3.13e+15_step_1211.pt --start-step 1211 --end-step 2421 --log-every 50 --ckpt-minutes 1e9
+arm A y = 4.810368338974153
+arm B /scratch/users/brando9/dm4/venv/bin/python /scratch/users/brando9/dm4/code/experiments/dm4_embedding_ladder/train.py --root /scratch/users/brando9/dm4 --out /scratch/users/brando9/dm4/g1diag/armB --width 128 --depth 4 --vocab-name neox --tie untied --seed 0 --lr 0.0115 --bs 28 --beta2 0.99 --warmup-tokens 7503872 --init-from /scratch/users/brando9/dm4/porian_ckpts/dataset=rw__hparams=tuned_warmup=short_decay=const__params=7M_maxstep=52340__flop_3.13e+15_step_1211.pt --start-step 1211 --end-step 2421 --log-every 50 --ckpt-minutes 1e9 --shuffle-windows
+arm B y = 4.7659289876507165
+porian_start {"nll_sum": 29509002.321777344, "targets": 5878508, "y": 5.019810690394, "nats_per_byte": 1.1804348852254216, "loss_own": 5.019811544319977, "checkpoint": "dataset=rw/hparams=tuned_warmup=short_decay=const/params=7M_maxstep=52340/flop_3.13e+15_step_1211.pt", "step": 1211}
+porian_end {"nll_sum": 27979577.817138672, "targets": 5878508, "y": 4.759638509890633, "nats_per_byte": 1.1192540286208004, "loss_own": 4.759639319558411, "checkpoint": "dataset=rw/hparams=tuned_warmup=short_decay=const/params=7M_maxstep=52340/flop_6.25e+15_step_2421.pt", "step": 2421}
+{
+ "y": {
+  "armA": 4.810368338974153,
+  "armB": 4.7659289876507165,
+  "porian_start": 5.019810690394,
+  "porian_end": 4.759638509890633
+ },
+ "A_minus_porian_end": 0.05072982908352053,
+ "A_gain_over_start": 0.20944235141984713,
+ "porian_gain_over_start": 0.26017218050336766,
+ "B_minus_A": -0.04443935132343668,
+ "B_minus_porian_end": 0.006290477760083846
+}
+G1_DIAG_DONE
