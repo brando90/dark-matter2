@@ -1,0 +1,165 @@
+{
+ "meta": {
+  "args": {
+   "root": "/lfs/mercury1/0/brando9/at1211/dm4data",
+   "out": "/lfs/mercury1/0/brando9/at1211/dm4data/phase1/run97",
+   "index": "97",
+   "runs_csv": "/lfs/mercury1/0/brando9/at1211/dm/experiments/dm4_embedding_ladder/runs.csv",
+   "width": "224",
+   "depth": "6",
+   "vocab_name": "bpe32k",
+   "tie": "untied",
+   "seed": "0",
+   "lr": "0.009",
+   "bs": "44",
+   "beta2": "0.99",
+   "warmup_tokens": "15597568",
+   "n_nonemb_ref": "4300800",
+   "tpp": "20",
+   "eval_tpp": "[2.5, 5, 10, 20]",
+   "cool_tpp": "[5, 10, 20]",
+   "indep_wd": "0.0001",
+   "micro_bs": "None",
+   "compile": "False",
+   "no_cooldown": "False",
+   "init_from": "None",
+   "start_step": "0",
+   "end_step": "None",
+   "shuffle_windows": "False",
+   "shuffle_chunk_steps": "1024",
+   "eval_limit_windows": "None",
+   "probe_steps": "0",
+   "probe_skip": "20",
+   "ckpt_minutes": "30",
+   "log_every": "200",
+   "keep_ckpt": "False"
+  },
+  "V": 32768,
+  "tied": false,
+  "N_nonemb": 4300800,
+  "N_emb": 14680064,
+  "N_ref": 15597568,
+  "bpt_ref": 4.349829969819275,
+  "D_bytes": 1356935374.8538818,
+  "total_steps": 3504,
+  "warmup_steps": 173,
+  "tokens_per_step": 90112,
+  "eval_steps": {
+   "437": 2.5,
+   "874": 5,
+   "1751": 10,
+   "3504": 20
+  },
+  "branches": {
+   "5": [
+    700,
+    874
+   ],
+   "10": [
+    1399,
+    1751
+   ],
+   "20": [
+    2804,
+    3504
+   ]
+  },
+  "device": "NVIDIA RTX A4000",
+  "torch": "2.8.0+cu128",
+  "pool_docs": 1399352,
+  "pool_bytes": 3597573575.0
+ },
+ "evals": [
+  {
+   "nll_sum": 31582877.807617188,
+   "targets": 5929402,
+   "y": 5.372600060256298,
+   "nats_per_byte": 1.26339516102209,
+   "loss_own": 5.326486179823394,
+   "kind": "const",
+   "tpp": 2.5,
+   "step": 437,
+   "tokens": 39378944,
+   "bytes": 169637205.41341233
+  },
+  {
+   "nll_sum": 28009014.291625977,
+   "targets": 5929402,
+   "y": 4.764645982786788,
+   "nats_per_byte": 1.1204315622088206,
+   "loss_own": 4.723750268851054,
+   "kind": "const",
+   "tpp": 5,
+   "step": 874,
+   "tokens": 78757888,
+   "bytes": 339312348.3315508
+  },
+  {
+   "nll_sum": 26319592.278076172,
+   "targets": 5929402,
+   "y": 4.477256440038821,
+   "nats_per_byte": 1.0528503997243734,
+   "loss_own": 4.4388274362366005,
+   "kind": "const",
+   "tpp": 10,
+   "step": 1751,
+   "tokens": 157786112,
+   "bytes": 678605195.0500463
+  },
+  {
+   "nll_sum": 25325613.533203125,
+   "targets": 5929402,
+   "y": 4.308169560207039,
+   "nats_per_byte": 1.0130887306300977,
+   "loss_own": 4.271191855975211,
+   "kind": "const",
+   "tpp": 20,
+   "step": 3504,
+   "tokens": 315752448,
+   "bytes": 1356938075.8498728
+  },
+  {
+   "nll_sum": 27415416.01611328,
+   "targets": 5929402,
+   "y": 4.663668290056761,
+   "nats_per_byte": 1.0966861266775176,
+   "loss_own": 4.623639283710783,
+   "kind": "cool@5",
+   "tpp": 5,
+   "step": 874,
+   "tokens": 78757888,
+   "bytes": 339312348.3315508
+  },
+  {
+   "nll_sum": 25673495.466064453,
+   "targets": 5929402,
+   "y": 4.367348160233225,
+   "nats_per_byte": 1.0270048896723878,
+   "loss_own": 4.32986251666938,
+   "kind": "cool@10",
+   "tpp": 10,
+   "step": 1751,
+   "tokens": 157786112,
+   "bytes": 678605195.0500463
+  },
+  {
+   "nll_sum": 24676154.427978516,
+   "targets": 5929402,
+   "y": 4.197689316794193,
+   "nats_per_byte": 0.9871087203276606,
+   "loss_own": 4.161659882055309,
+   "kind": "cool@20",
+   "tpp": 20,
+   "step": 3504,
+   "tokens": 315752448,
+   "bytes": 1356938075.8498728
+  }
+ ],
+ "gpu_seconds": 5809.749987602234,
+ "done": [
+  "const",
+  "cool@5",
+  "cool@10",
+  "cool@20"
+ ]
+}
