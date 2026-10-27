@@ -1,0 +1,10 @@
+DM-4 phase 1, w128 d4, const schedule, 20 tokens/param, metric = nats_per_byte at tpp 20 (lower is better).
+Seeds 0-2 = frozen rows (AT-1341); seeds 3-7 = extension (AT-1465, mercury1 A4000, --no-cooldown, same lr/bs/beta2/warmup; steps 2622 vs 2621).
+Paired diff = untied minus tied (negative = untied better). Run on mercury1 Oct 26 ~21:02, script analyze.py.
+
+vocab 8192:  n=8 tied 1.1682 untied 1.1655 diff -0.0027 sd 0.0035 se 0.0012 untied better 6/8
+   diffs [-0.0033, -0.0062, -0.0037, 0.0009, -0.003, 0.0037, -0.0066, -0.0036]
+vocab 32768: n=8 tied 1.1140 untied 1.1155 diff +0.0016 sd 0.0039 se 0.0014 untied better 3/8
+   diffs [-0.0036, 0.0039, -0.0026, 0.0053, 0.0038, 0.0059, 0.0025, -0.0028]
+vocab 50432 (NeoX): n=8 tied 1.1103 untied 1.1132 diff +0.0029 sd 0.0036 se 0.0013 untied better 3/8
+   diffs [0.0037, 0.0032, -0.0008, -0.0015, 0.0047, 0.0058, 0.0085, -0.0008]
